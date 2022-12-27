@@ -22,24 +22,24 @@ def build_feature_extractor(backbone_arch, use_group_norm=False):
 
 class ResNetFeatureExtractor(ResNet):
     """
-    This class implements the feature extractor based on the ResNet backbone
+    该类实现了基于ResNet主干的特征提取器。
     """
     def __init__(self, resnet_full, level,
                        feature_map_stride, feature_map_receptive_field):
         """
         Args:
-            resnet_full - a resnet model: an instance of the ResNet class from torchvision
+            resnet_full - a resnet model: 来自Torchvision的ResNet类的一个实例
                 https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
-            level (int) - level at which to create the feature extractor, can be 1, 2, 3, 4, 5
-            feature_map_stride (FeatureMapSize) - the stride of the feature map, should be set manually
-            feature_map_receptive_field (FeatureMapSize) - the effective receptive field of the feature map, should be set manually
+            level (int) - 那一层用于创建特征提取器, can be 1, 2, 3, 4, 5
+            feature_map_stride (FeatureMapSize) - 特征图的跨度，应手动设置 FeatureMapSize(w=16, h=16)
+            feature_map_receptive_field (FeatureMapSize) - 特征图的有效感受野，应手动设置FeatureMapSize(w=16, h=16)
         """
         self.__dict__ = resnet_full.__dict__.copy()
         self.feature_map_receptive_field = feature_map_receptive_field
         self.feature_map_stride = feature_map_stride
         self._feature_level = level
 
-        # remove unused layers to free memory
+        # 删除不使用的层以释放内存
         delattr(self, "fc")
         delattr(self, "avgpool")
 
@@ -62,7 +62,7 @@ class ResNetFeatureExtractor(ResNet):
 
         for layer in self.resnet_blocks:
             x = layer(x)
-        return x
+        return x   #【1，1,024，,17，,14】
 
     def freeze_bn(self):
         # Freeze BatchNorm layers

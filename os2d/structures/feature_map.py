@@ -4,9 +4,9 @@ from torch import Tensor
 
 class FeatureMapSize(object):
     """
-    This class represents the spatial dimensions of feature maps and images.
-    This class is used to avoid W,H vs H,W format confusion.
-    This class is immutable.
+    该类表示特征图和图像的空间维度。
+    这个类别是用来避免W,H与H,W格式的混淆。
+    这个类是不可改变的。
 
     For PIL.Image.Image, FeatureMapSize is w, h
     For torch.tensor, FeatureMapSize is size(-1), size(-2)

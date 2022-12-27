@@ -26,13 +26,13 @@ from os2d.structures.feature_map import FeatureMapSize
 def read_annotation_file(path):
     dataframe = pd.read_csv(path)
 
-    # add "imagefilename" and "classfilename" columns with default file names
+    #imageid作为图片的文件名， add "imagefilename" and "classfilename" columns with default file names
     if not "imagefilename" in dataframe.columns:
         imagefilename = []
         for row in dataframe["imageid"]:
             imagefilename.append(str(row)+".jpg")
         dataframe["imagefilename"] = imagefilename
-
+    # classid作为类别名称
     if not "classfilename" in dataframe.columns:
         classfilename = []
         for row in dataframe["classid"]:
@@ -75,7 +75,7 @@ def build_eval_dataset(data_path, name, eval_scale, cache_images=False, no_image
 
 def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_image_reading=False, logger_prefix="OS2D"):
     logger = logging.getLogger(f"{logger_prefix}.dataset")
-    logger.info("Preparing the GroZi-3.2k dataset: version {0}, eval scale {1}, image caching {2}".format(name, eval_scale, cache_images))
+    logger.info("准备 GroZi-3.2k 数据集: version {0}, eval scale {1}, image caching {2}".format(name, eval_scale, cache_images))
 
     annotation_folder="classes"
     image_size = 3264
@@ -100,8 +100,8 @@ def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_imag
         unique_images = gtboxframe[["imageid", "imagefilename"]].drop_duplicates()
         image_ids = list(unique_images["imageid"])
         image_file_names = list(unique_images["imagefilename"])
-        return image_ids, image_file_names
-
+        return image_ids, image_file_names  # 图片的id和图片的名称
+    # 根据用户提供的名字，name，判断是否加载训练集还是评估集
     if subset in ["train", "train-mini"]:
         gtboxframe = gtboxframe[gtboxframe["split"] == "train"]
         image_ids, image_file_names = get_unique_images(gtboxframe)
@@ -562,17 +562,17 @@ class DatasetOneShotDetection(data.Dataset):
                        cache_images=False, no_image_reading=False,
                        image_ids=None, image_file_names=None, logger_prefix="OS2D"):
         self.logger = logging.getLogger(f"{logger_prefix}.dataset")
-        self.name = name
-        self.image_size = image_size
-        self.eval_scale = eval_scale
-        self.cache_images = cache_images
+        self.name = name  #eg: 'grozi-train'
+        self.image_size = image_size   # eg: 图片的个数，3264
+        self.eval_scale = eval_scale   # 评估图片的数量？
+        self.cache_images = cache_images   # 缓存图片？
 
-        self.gtboxframe = gtboxframe
+        self.gtboxframe = gtboxframe    #groundtruth box 的位置信息
         required_columns = {"imageid", "imagefilename", "classid", "classfilename", "gtbboxid", "difficult", "lx", "ty", "rx", "by"}
         assert required_columns.issubset(self.gtboxframe.columns), "Missing columns in gtboxframe: {}".format(required_columns - set(self.gtboxframe.columns))
 
-        self.gt_path = gt_path
-        self.image_path = image_path
+        self.gt_path = gt_path   #eg: 类别图片的位置 '/xxx/os2d/data/grozi/classes/images'
+        self.image_path = image_path  # 原始图片的位置: '/xxx/os2d/data/grozi/src/3264'
         self.have_images_read = False
 
         if image_ids is not None and image_file_names is not None:
@@ -594,7 +594,7 @@ class DatasetOneShotDetection(data.Dataset):
         self.num_boxes = len(self.gtboxframe)
         self.num_classes = len(self.gtboxframe["classfilename"].unique())
 
-        self.logger.info("Loaded dataset {0} with {1} images, {2} boxes, {3} classes".format(
+        self.logger.info("加载数据集成功，数据集名称： {0}，图片数量 {1}, boxes数量：{2} , 类别数量：{3}".format(
             self.name, self.num_images, self.num_boxes, self.num_classes
         ))
 
@@ -631,7 +631,7 @@ class DatasetOneShotDetection(data.Dataset):
                 img = self._get_dataset_image_by_id(image_id)
                 self.image_size_per_image_id[image_id] = FeatureMapSize(img=img)
 
-        self.logger.info("{1} {0} data images".format(len(self.image_path_per_image_id), "Read" if self.cache_images else "Found"))
+        self.logger.info("{1} {0} 数据图片".format(len(self.image_path_per_image_id), "读取" if self.cache_images else "发现"))
 
     def _read_dataset_gt_images(self):
         self.gt_images_per_classid = OrderedDict()
@@ -650,11 +650,11 @@ class DatasetOneShotDetection(data.Dataset):
         buckets = []
         bucket_image_size = []
         for image_id, s in self.image_size_per_image_id.items():
-            if s not in bucket_image_size:
+            if s not in bucket_image_size:  #eg: s：FeatureMapSize(w=3264, h=2448)
                 # create a new empty bucket
                 bucket_image_size.append(s)
                 buckets.append([])
-            # add item to the suitable bucket
+            # 将项目添加到合适的桶中， 根据图片的特征图尺寸，放入不同的桶中
             i_bucket = bucket_image_size.index(s)
             buckets[i_bucket].append(image_id)
         return buckets

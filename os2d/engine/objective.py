@@ -10,7 +10,7 @@ from os2d.utils import masked_select_or_fill_constant
 
 
 class Os2dObjective(nn.Module):
-    """The detection traing objective:
+    """检测训练目标:
         loss = ClassificationLoss(cls_preds, cls_targets) + localization_weight * SmoothL1Loss(loc_preds, loc_targets)
 
         Supported classification losses: ContrastiveLoss, RLL
@@ -20,14 +20,14 @@ class Os2dObjective(nn.Module):
                        neg_to_pos_ratio, rll_neg_weight_ratio):
         """
         Args:
-            class_loss (str) - the recognition loss, support "ContrastiveLoss" and "RLL"
-            margin (float) - margin for negative objects
-            margin_pos (float) - margin for positive objects
-            class_loss_neg_weight (float) - weight coeff for negative loss component
-            remap_classification_targets (bool) - flag if traget remapping is used
-            localization_weight (float) - weight for the localization loss
-            neg_to_pos_ratio (int) - in ContrastiveLoss, ratio of positives to negatives
-            rll_neg_weight_ratio (float) - in RLL, the ratio between the weights of the highest loss objects and the zero-loss objects
+            class_loss (str) - 识别损失，支持“ContrastiveLoss”和“RLL”, eg: RLL
+            margin (float) - 负样本的边界, eg:0.5
+            margin_pos (float) - 正样本的边界, eg: 0.6
+            class_loss_neg_weight (float) - 负样本损失分量的权重系数, eg: 1.0
+            remap_classification_targets (bool) - 是否使用目标重映射, eg: True
+            localization_weight (float) - 位置损失的权重, eg: 0.0
+            neg_to_pos_ratio (int) - 对比损失中，正负样本比, eg: 3
+            rll_neg_weight_ratio (float) - 在 RLL损失中, 最高损失目标和零损失目标的权重之间的比率, eg: 0.001
         """
         super(Os2dObjective, self).__init__()
         self.neg_to_pos_ratio = neg_to_pos_ratio
@@ -40,7 +40,7 @@ class Os2dObjective(nn.Module):
         self.remap_classification_targets = remap_classification_targets
 
         if self.class_loss.lower() == 'rll':
-            # do not do further hard-negative mining if the RLL loss is used
+            # 如果使用 RLL 损失，则不要进行进一步的 hard-negative 挖掘
             self.neg_to_pos_ratio = float("inf")
 
 

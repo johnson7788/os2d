@@ -61,7 +61,7 @@ def create_strided_boxes_columnfirst(grid_size, box_size, box_stride):
 
 
 class BoxGridGenerator:
-    """This class allows to specialize the call of the create_strided_boxes_columnfirst to the specific network stride and box sizes/
+    """该类允许专门调用 create_strided_boxes_column， first to the specific network stride and box sizes
     """
     def __init__(self, box_size, box_stride):
         """
@@ -167,7 +167,8 @@ class BoxGridGenerator:
 
 
 class Os2dBoxCoder:
-    """This class implements the analogue of the BoxCoder from torchvision, but supports image pyramids and has NMS inside.
+    """
+    这个类实现了来自 torchvision 的 BoxCoder 的模拟，但支持图像金字塔并且内部有 NMS。
     """
     def __init__(self, positive_iou_threshold, negative_iou_threshold,
                        remap_classification_targets_iou_pos, remap_classification_targets_iou_neg,

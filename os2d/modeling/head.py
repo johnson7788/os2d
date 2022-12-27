@@ -41,8 +41,8 @@ def convert_box_coordinates_local_to_global(resampling_grids, default_boxes_xyxy
 
 
 class Os2dAlignment(nn.Module):
-    """This class contains all the operations related to the transfomation computation.
-    If adding new transformation type, only this class should be changed.
+    """该类包含所有与变换计算有关的运算。
+    如果增加新的变换类型，只需要改变这个类。
     """
     def __init__(self, do_simple_affine, is_cuda, use_inverse_geom_model):
         super(Os2dAlignment, self).__init__()
@@ -50,7 +50,7 @@ class Os2dAlignment(nn.Module):
         self.model_type = "affine" if not do_simple_affine else "simple_affine" # "affine" or "simple_affine"
         self.use_inverse_geom_model = use_inverse_geom_model
 
-        # create the parameter regression network
+        # 创建参数回归网络
         if self.model_type == "affine":
             transform_net_output_dim = 6
         elif self.model_type == "simple_affine":
@@ -58,16 +58,16 @@ class Os2dAlignment(nn.Module):
         else:
             raise(RuntimeError("Unknown transformation model \"{0}\"".format(self.model_type)))
 
-        # all these numbers are semantically different, but are set to 15 due to the details in the model architecture
-        # these number have to be compatible with the network regressing transformation parameters
-        # following the weakalign code, we use 15 here
-        # all the sizes are in (H, W) format
-        # NOTE: tenchically the code should work with non-square grids, but this was never tested, so expect bugs
+        # 所有这些数字在语义上是不同的，但由于模型架构中的细节，被设置为15。
+        # 这些数字必须与网络回归转换参数兼容
+        # 按照弱对齐代码，我们在这里使用15
+        # 所有的尺寸都是（高，宽）的格式
+        # NOTE: 严格来说，这段代码应该能在非正方形的网格中工作，但这一点从未被测试过，所以预计会有错误。
         self.out_grid_size = FeatureMapSize(w=15, h=15)
         self.reference_feature_map_size = FeatureMapSize(w=15, h=15)
         self.network_stride = FeatureMapSize(w=1, h=1)
         self.network_receptive_field = FeatureMapSize(w=15, h=15)
-
+        # eg: input_feature_dim： 输入维度：15*15 = 225,  transform_net_output_dim: 输出维度
         self.input_feature_dim = self.reference_feature_map_size.w * self.reference_feature_map_size.h
         self.parameter_regressor = TransformationNet(output_dim=transform_net_output_dim,
                                                      use_cuda=is_cuda,
@@ -155,15 +155,15 @@ class Os2dAlignment(nn.Module):
     def forward(self, corr_maps):
         """
         Args:
-            corr_maps (Tensor[float]): a batch_size x num_features x h^A x w^A tensor containing the transformation parameters for each image-class pair and for each spatial location in the image
-            Here the batch size batch_size equals the product of the image batch size b^A and class batch size b^C
-            The number of channels num_features should be compatible with the created feature regression network (equals 225 for the weakalign models).
+            corr_maps (Tensor[float]): a batch_size x num_features x h^A x w^A 包含每个图像类对和图像中每个空间位置的变换参数的张量
+            这里的批次大小 batch_size 等于图像批次大小 b^A 和类别批次大小 b^C 的乘积
+            通道数 num_features 应该与创建的特征回归网络兼容 (equals 225 for the weakalign models).
 
         Returns:
             resampling_grids_local_coord (Tensor[float]): a batch_size x h^A x w^A x out_grid_height x out_grid_width x 2 tensor
-            The tensor represents a grid of points under the computed transformations for each batch element and each spatial location.
+            张量代表每个批次元素和每个空间位置的计算变换下的点网格。
             Each point has two coordinates: x \in [-1, 1] and y \in  [-1,1].
-            CAUTION! each point is in the coordinate system local to the corresponding spatial location
+            警告！每个点都在相应空间位置的局部坐标系中
         """
 
         batch_size = corr_maps.size(0)
@@ -202,17 +202,17 @@ def spatial_norm(feature_mask):
 
 
 class Os2dHeadCreator(nn.Module):
-    """Os2dHeadCreator creates specific instances of Os2dHead that contain features extracted from lavel/query images
-
-    Note: the Os2dHeadCreator objects should be a submodule of the Os2dModel object as it has trainable parameters:
-        TransformNet in self.aligner, the Os2dHead objects should not be submodules of Os2dModel.
-        At the same time, the forward method is implemented only in Os2dHead, but not in Os2dHeadCreator
+    """
+    Os2dHeadCreator创建Os2dHead的特定实例，其中包含从lavel目标/查询图像中提取的特征。
+    Note: Os2dHeadCreator对象应该是Os2dModel对象的一个子模块，因为它有可训练参数。
+        在self.aligner中的TransformNet，Os2dHead对象不应该是Os2dModel的子模块。
+        同时，forward方法只在Os2dHead中实现，而不是在Os2dHeadCreator中实现
     """
     def __init__(self, aligner, feature_map_stride, feature_map_receptive_field):
         super(Os2dHeadCreator, self).__init__()
-        # create the alignment module
+        # 创建对齐模块
         self.aligner = aligner
-
+        # feature_map_receptive_field 和 feature_map_stride： FeatureMapSize(w=16, h=16)， rec_field：感受野大小和步长
         rec_field, stride = self.get_rec_field_and_stride_after_concat_nets(feature_map_receptive_field, feature_map_stride,
                                                                              self.aligner.network_receptive_field, self.aligner.network_stride)
         self.box_grid_generator_image_level = BoxGridGenerator(box_size=rec_field, box_stride=stride)
@@ -222,17 +222,17 @@ class Os2dHeadCreator(nn.Module):
     @staticmethod
     def get_rec_field_and_stride_after_concat_nets(receptive_field_netA, stride_netA,
                                                    receptive_field_netB, stride_netB):
-        """We are concatenating the two networks  net(x) = netB(netA(x)), both with strides and receptive fields.
-        This functions computes the stride and receptive field of the combination
+        """我们将两个网络串联起来  net(x) = netB(netA(x)), 2者的的步长和感受野都是如此。
+        该函数计算了组合的步长和感受野。
         """
         if isinstance(receptive_field_netA, FeatureMapSize):
             assert isinstance(stride_netA, FeatureMapSize) and isinstance(receptive_field_netB, FeatureMapSize) and isinstance(stride_netB, FeatureMapSize), "All inputs should be either of type FeatureMapSize or int"
             rec_field_w, stride_w = Os2dHeadCreator.get_rec_field_and_stride_after_concat_nets(receptive_field_netA.w, stride_netA.w,
-                                                                                               receptive_field_netB.w, stride_netB.w)
+                                                                                     receptive_field_netB.w, stride_netB.w)
             rec_field_h, stride_h = Os2dHeadCreator.get_rec_field_and_stride_after_concat_nets(receptive_field_netA.h, stride_netA.h,
                                                                                                receptive_field_netB.h, stride_netB.h)
             return FeatureMapSize(w=rec_field_w, h=rec_field_h), FeatureMapSize(w=stride_w, h=stride_h)
-
+        # stride_netA: 16, receptive_field_netB:15, receptive_field_netA: 16, --> 240
         rec_field = stride_netA * (receptive_field_netB - 1) + receptive_field_netA
         stride = stride_netA * stride_netB
         return rec_field, stride
@@ -249,17 +249,17 @@ class Os2dHeadCreator(nn.Module):
             grid_size = torch.Size([1,
                                     num_feature_channels,
                                     ref_size.h,
-                                    ref_size.w])
-            resampling_grid = F.affine_grid(identity.unsqueeze(0), grid_size, align_corners=True)
+                                    ref_size.w])  #eg: torch.Size([1, 1024, 15, 15])
+            resampling_grid = F.affine_grid(identity.unsqueeze(0), grid_size, align_corners=True)  #eg: [1,15,15,2]
             fm_ref_size = F.grid_sample(fm, resampling_grid, mode='bilinear', padding_mode='zeros', align_corners=True)
-
+            # fm_ref_size: [1,1024,15,15]
             feature_maps_ref_size.append(fm_ref_size)
 
         feature_maps_ref_size = torch.cat(feature_maps_ref_size, dim=0)
         return feature_maps_ref_size
 
     def create_os2d_head(self, class_feature_maps):
-        # convert all the feature maps to the standard size
+        # 将所有特征图转换为标准尺寸， reference_feature_map_size： FeatureMapSize(w=15, h=15)
         reference_feature_map_size = self.aligner.reference_feature_map_size
         class_feature_maps_ref_size = self.resize_feature_maps_to_reference_size(reference_feature_map_size, class_feature_maps)
         return Os2dHead(class_feature_maps_ref_size,
@@ -269,10 +269,10 @@ class Os2dHeadCreator(nn.Module):
 
 
 class Os2dHead(nn.Module):
-    """This class computes the recognition and localization scores for a batch of input feature maps and a batch of class feature maps.
-    The class feature maps should be fed into the constructor that stores references to them inside.
-    The input feature maps should be fed into the forward method.
-    Instances of this class are supposed to be created by Os2dHeadCreator.create_os2d_head with passing in the class_feature_maps
+    """此类计算一批输入特征图和一批类别特征图的识别和定位分数。
+    类特征映射应该被馈送到构造函数中，该构造函数在内部存储对它们的引用。
+    输入特征图应该被馈送到前向方法中。
+    此类的实例应该由 Os2dHeadCreator.create_os2d_head 通过传入 class_feature_maps 创建
     """
     def __init__(self, class_feature_maps, aligner,
                        box_grid_generator_image_level,
@@ -281,25 +281,25 @@ class Os2dHead(nn.Module):
         super(Os2dHead, self).__init__()
 
         # initialize class feature maps
-        self.class_feature_maps = class_feature_maps
-        self.class_batch_size = self.class_feature_maps.size(0)
+        self.class_feature_maps = class_feature_maps   #【1，,1024，,15，,15】
+        self.class_batch_size = self.class_feature_maps.size(0)   #eg: 1
 
-        # class to generate box grids in the image plane that correspond to positions in the feature map
+        # 类在图像平面中生成与特征图中的位置相对应的box网格
         self.box_grid_generator_image_level = box_grid_generator_image_level
-        # class to generate box grids in the feature map plane
+        # 在特征图平面中生成box网格的类
         self.box_grid_generator_feature_map_level = box_grid_generator_feature_map_level
 
-        # class feature maps have to be normalized
+        # 类特征图必须归一化
         self.class_feature_maps = normalize_feature_map_L2(self.class_feature_maps, 1e-5)
 
-        # create a mask for pooling activations - for now just block few pixels at the edges
+        # 为池化激活创建一个mask——现在只需在边缘阻挡几个像素, [1,1,15,15]
         self.class_pool_mask = torch.zeros( (self.class_feature_maps.size(0), 1,
                                              self.class_feature_maps.size(2), self.class_feature_maps.size(3)), # batch_size x 1 x H x W
                                              dtype=torch.float, device=self.class_feature_maps.device)
         self.class_pool_mask[:, :,
                              pool_border_width : self.class_pool_mask.size(-2) - pool_border_width,
                              pool_border_width : self.class_pool_mask.size(-1) - pool_border_width] = 1
-        self.class_pool_mask = spatial_norm(self.class_pool_mask)
+        self.class_pool_mask = spatial_norm(self.class_pool_mask)  #[1,1,15,15]
 
         # create the alignment module
         self.aligner = aligner
@@ -308,7 +308,7 @@ class Os2dHead(nn.Module):
     def forward(self, feature_maps):
         """
         Args:
-            feature_maps (Tensor[float], size b^A x d x h^A x w^A) - contains the feature map of the input image
+            feature_maps (Tensor[float], size b^A x d x h^A x w^A) - 包含输入图像的特征图
             b^A - batch size
             d - feature dimensionality
             h^A - height of the feature map
@@ -338,18 +338,18 @@ class Os2dHead(nn.Module):
         # L2-normalize the feature map
         feature_maps = normalize_feature_map_L2(feature_maps, 1e-5)
 
-        # get correlations all to all
+        # 获得所有相关性， 矩阵运算，得到结果[1,1,15,15,60,80]
         corr_maps = torch.einsum( "bfhw,afxy->abwhxy", self.class_feature_maps, feature_maps )
         # need to try to optimize this with opt_einsum: https://optimized-einsum.readthedocs.io/en/latest/
         # CAUTION: note the switch of dimensions hw to wh. This is done for compatability with the FeatureCorrelation class by Ignacio Rocco https://github.com/ignacio-rocco/ncnet/blob/master/lib/model.py (to be able to load their models)
 
-        # reshape to have the correlation map of dimensions similar to the standard tensor for image feature maps
+        # 重塑以具有类似于图像特征图的标准张量的维度相关图, [1,255,60,80]
         corr_maps = corr_maps.contiguous().view(batch_size * self.class_batch_size,
                                                 feature_dim_for_regression,
                                                 image_fm_size.h,
                                                 image_fm_size.w)
 
-        # compute the grids to resample corr maps
+        # 计算网格以重新采样相关映射
         resampling_grids_local_coord = self.aligner(corr_maps)
 
         # build classifications outputs
@@ -628,7 +628,7 @@ class TransformationNet(nn.Module):
         self.conv = nn.Sequential(*nn_modules)
         self.linear = nn.Conv2d(ch_out, output_dim, kernel_size=(k_size, k_size), padding=k_size//2)
 
-        # initialize the last layer to deliver identity transform
+        # 初始化最后一层，以传递身份转换
         if output_dim==6:
             # assert output_dim==6, "Implemented only for affine transform"
             self.linear.weight.data.zero_()

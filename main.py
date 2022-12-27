@@ -13,17 +13,17 @@ from os2d.config import cfg
 
 
 def parse_opts():
-    parser = argparse.ArgumentParser(description="Training and evaluation of the OS2D model")
+    parser = argparse.ArgumentParser(description="对OS2D模型的训练和评估")
     parser.add_argument(
         "--config-file",
         default="",
         metavar="FILE",
-        help="path to config file",
+        help="配置文件地址",
         type=str,
     )
     parser.add_argument(
         "opts",
-        help="Modify config options using the command-line",
+        help="使用命令行修改配置选项, 其它所有命令",
         default=None,
         nargs=argparse.REMAINDER,
     )
@@ -45,14 +45,14 @@ def init_logger(cfg, config_file):
     logger = setup_logger("OS2D", output_dir if cfg.output.save_log_to_file else None)
 
     if config_file:
-        logger.info("Loaded configuration file {}".format(config_file))
+        logger.info("加载的配置文件是 {}".format(config_file))
         with open(config_file, "r") as cf:
             config_str = "\n" + cf.read()
             logger.info(config_str)
     else:
         logger.info("Config file was not provided")
 
-    logger.info("Running with config:\n{}".format(cfg))
+    logger.info("具体的配置时:\n{}".format(cfg))
 
     # save config file only when training (to run multiple evaluations in the same folder)
     if output_dir and cfg.train.do_training:
@@ -74,14 +74,14 @@ def main():
     # random seed
     set_random_seed(cfg.random_seed, cfg.is_cuda)
 
-    # Model
+    # 创建模型
     net, box_coder, criterion, img_normalization, optimizer_state = build_os2d_from_config(cfg)
 
     # Optimizer
     parameters = get_trainable_parameters(net)
     optimizer = create_optimizer(parameters, cfg.train.optim, optimizer_state)
 
-    # load the dataset
+    # 加载数据集， 数据集目录路径： data_path
     data_path = get_data_path()
     dataloader_train, datasets_train_for_eval = build_train_dataloader_from_config(cfg, box_coder, img_normalization,
                                                                                    data_path=data_path)

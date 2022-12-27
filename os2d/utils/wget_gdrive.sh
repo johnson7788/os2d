@@ -1,5 +1,5 @@
 # Command from here: https://medium.com/@acpanjan/download-google-drive-files-using-wget-3c2c025a8b99
-
+# ./os2d/utils/wget_gdrive.sh models/os2d_v2-init.pth 1sr9UX45kiEcmBeKHdlX7rZTSA4Mgt0A7
 TARGET_PATH=$1
 FILEID=$2
 

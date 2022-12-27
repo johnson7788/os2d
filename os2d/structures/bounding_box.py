@@ -14,14 +14,14 @@ FLIP_TOP_BOTTOM = 1
 
 class BoxList(object):
     """
-    This class represents a set of bounding boxes.
-    The bounding boxes are represented as a Nx4 Tensor.
-    In order to uniquely determine the bounding boxes with respect
-    to an image, we also store the corresponding image dimensions.
-    They can contain extra information that is specific to each bounding box, such as
-    labels.
+    此类表示一组bounding boxes。
+    bounding boxes表示为 Nx4 张量。
+    为了唯一确定关于图像的bounding boxes，我们还存储了相应的图像维度。
+    它们可以包含特定于每个bounding boxes的额外信息，例如标签。
 
-    This code is based on the corresponding class of the maskrcnn-benchmark:
+
+
+    这段代码是基于maskrcnn-benchmark的对应类：
     https://github.com/facebookresearch/maskrcnn-benchmark/blob/master/maskrcnn_benchmark/structures/bounding_box.py
     """
     def __init__(self, bbox, image_size, mode="xyxy"):

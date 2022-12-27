@@ -26,21 +26,21 @@ from os2d.utils import get_image_size_after_resize_preserving_aspect_ratio
 def build_eval_dataloaders_from_cfg(cfg, box_coder, img_normalization,
                                     datasets_for_eval=[], data_path="",
                                     logger_prefix="OS2D.eval"):
-    """Construct dataloaders to use for evaluation.
+    """构造用于评估的数据加载器。
     Args:
-        cfg - config object, evaluation is done on cfg.eval.dataset_names evaluation datasets
+        cfg - 配置对象，评估在 cfg.eval.dataset_names 评估数据集上完成
         box_coder (Os2dBoxCoder)
         img_normalization (dict) - normalization to use, keys "mean" and "std" have lists of 3 floats each
-        datasets_for_eval (list of DatasetOneShotDetection) - datasets for eval, should include subsets of the training set and created datasets
-        data_path (str) - root path to search for datasets, if provided will create the eval datasets from config
-        logger_prefix (str) - prefix to ass to the logger outputs
+        datasets_for_eval (list of DatasetOneShotDetection) - 用于评估的数据集，应包括训练集的子集和创建的数据集
+        data_path (str) - 搜索数据集的根路径，如果提供将从配置创建评估数据集, '/xxx/os2d/data'
+        logger_prefix (str) - prefix to ass to the logger outputs, 'OS2D.eval'
     Output:
         dataloaders_eval (list of DataloaderOneShotDetection) - the dataloaders
     """
     if data_path:
-        # check that the eval_scales are provided properly
+        # 检查是否正确提供了 eval_scales
         if len(cfg.eval.dataset_scales) == 1:
-            eval_scales = cfg.eval.dataset_scales * len(cfg.eval.dataset_names)
+            eval_scales = cfg.eval.dataset_scales * len(cfg.eval.dataset_names)   #eg: [1280.0]
             eval_dataset_names = cfg.eval.dataset_names
         elif len(cfg.eval.dataset_names) == 1:
             eval_dataset_names = cfg.eval.dataset_names * len(cfg.eval.dataset_scales)
@@ -48,8 +48,8 @@ def build_eval_dataloaders_from_cfg(cfg, box_coder, img_normalization,
         else:
             eval_scales = cfg.eval.dataset_scales
             eval_dataset_names = cfg.eval.dataset_names
+        # 评估数据集的个数和评估数量需要一致，即1个评估数据集需要有1种评估数量
         assert len(eval_scales) == len(eval_dataset_names), "The number of values in eval_scales (have {0}: {1}) should be compatible with the number of values in eval_datasets_name (have {2}: {3})".format(len(eval_scales), eval_scales, len(eval_dataset_names), eval_dataset_names)
-        
         # build all the eval datasets
         datasets_val = [build_dataset_by_name(data_path, dataset_name,
                                               eval_scale=eval_scale,
@@ -59,7 +59,7 @@ def build_eval_dataloaders_from_cfg(cfg, box_coder, img_normalization,
     else:
         datasets_val = []
 
-    # add extra train dataset if provided
+    # 如果提供，添加额外的训练数据集
     if len(datasets_for_eval) != 0:
         datasets_val = datasets_val + datasets_for_eval
         eval_scales = eval_scales + [d.eval_scale for d in datasets_for_eval]
@@ -87,17 +87,17 @@ def build_eval_dataloaders_from_cfg(cfg, box_coder, img_normalization,
 def build_train_dataloader_from_config(cfg, box_coder, img_normalization,
                                        dataset_train=None, data_path="",
                                        logger_prefix="OS2D.train"):
-    """Construct dataloaders to use for training.
+    """构建用于训练的数据加载器。
     Args:
         cfg - config object, training is done on cfg.train.dataset_name dataset
         box_coder (Os2dBoxCoder)
         img_normalization (dict) - normalization to use, keys "mean" and "std" have lists of 3 floats each
-        dataset_train (DatasetOneShotDetection) - one needs either to provide a dataset object or a path to create such object from config
-        data_path (str) - root path to search for datasets
-        logger_prefix (str) - prefix to ass to the logger outputs
+        dataset_train (DatasetOneShotDetection) - 需要提供数据集对象或从配置创建此类对象的路径
+        data_path (str) - 搜索数据集的根路径， eg: '/xxx/os2d/data'
+        logger_prefix (str) - 日志：记录器输出的前缀
     Output:
         dataloader_train (DataloaderOneShotDetection) - the dataloader for training
-        datasets_train_subset_for_eval (list of DatasetOneShotDetection) - subsets of the training set to pass to evaluation dataloaders
+        datasets_train_subset_for_eval (list of DatasetOneShotDetection) - 传递给评估数据加载器的训练集的子集
     """
     if dataset_train is None:
         assert data_path, "If explicit dataset_train is not provided one needs to provide a data_path to create one"
@@ -110,10 +110,10 @@ def build_train_dataloader_from_config(cfg, box_coder, img_normalization,
     # create training dataloader
     random_crop_size = FeatureMapSize(w=cfg.train.augment.train_patch_width,
                                       h=cfg.train.augment.train_patch_height)
-    evaluation_scale = dataset_train.eval_scale / dataset_train.image_size
+    evaluation_scale = dataset_train.eval_scale / dataset_train.image_size   #eg: 0.392
 
-    pyramid_scales_eval = cfg.eval.scales_of_image_pyramid
-    pyramid_scales_eval = [p * evaluation_scale for p in pyramid_scales_eval]
+    pyramid_scales_eval = cfg.eval.scales_of_image_pyramid     #eg: [1.0]
+    pyramid_scales_eval = [p * evaluation_scale for p in pyramid_scales_eval]  #eg: [0.39215686274509803]
 
     dataloader_train = DataloaderOneShotDetection(dataset=dataset_train,
                                       box_coder=box_coder,
@@ -144,8 +144,8 @@ def build_train_dataloader_from_config(cfg, box_coder, img_normalization,
 
 
 class DataloaderOneShotDetection():
-    """Dataloader for the task of one-shot detection.
-    This class contains the dataset, the data augmenation, and the methods to create training/evaluation batches.
+    """用于one-shot检测任务的数据加载器。
+    此类包含数据集、数据增强和创建训练/评估批次的方法。
     For usage at training, see engine.train.
     For usage at evaluation, see engine.evaluate.
     """
@@ -173,8 +173,8 @@ class DataloaderOneShotDetection():
         self.num_pyramid_levels = len(self.pyramid_scales_eval)
         self.pyramid_box_inverse_transform = {}
 
-        # select what to do with data augmentation
-        if  do_augmentation:
+        # 选择如何处理数据增强
+        if do_augmentation:
             self.data_augmentation = DataAugmentation(random_flip_batches=random_flip_batches,
                                                       random_crop_size=random_crop_size,
                                                       random_crop_scale=random_crop_scale,
@@ -184,7 +184,7 @@ class DataloaderOneShotDetection():
                                                       random_crop_label_images=random_crop_class_images,
                                                       min_box_coverage=min_box_coverage)
 
-            # if doing random crop data augmentation there is no need to use buckets - all images will be cropped to the same size      
+            # 如果进行随机裁剪数据增强，则无需使用桶 - 所有图像将被裁剪为相同大小， eg: False
             self.use_buckets = False if random_crop_size is not None else True            
         else:
             self.data_augmentation = None
@@ -273,9 +273,9 @@ class DataloaderOneShotDetection():
                                           do_augmentation=True, hflip=False, vflip=False,
                                           pyramid_scales=(1,),
                                           mined_data=None ):
-        img = self._get_dataset_image_by_id(image_id)
-        img_size = FeatureMapSize(img=img)
-
+        img = self._get_dataset_image_by_id(image_id)  #读取图像的二进制像素
+        img_size = FeatureMapSize(img=img)  #获取图像的大小, FeatureMapSize(w=3264, h=2448)
+        # 是否使用数据增强， False
         do_augmentation = do_augmentation and self.data_augmentation is not None
         num_pyramid_levels = len(pyramid_scales)
 
@@ -284,12 +284,12 @@ class DataloaderOneShotDetection():
             crop_position = mined_data["crop_position_xyxy"]
 
         if boxes is None:
-            boxes = BoxList.create_empty(img_size)
+            boxes = BoxList.create_empty(img_size)  #eg: BoxList(num_boxes=0, image_width=3264, image_height=2448, )
         mask_cutoff_boxes = torch.zeros(len(boxes), dtype=torch.bool)
         mask_difficult_boxes = torch.zeros(len(boxes), dtype=torch.bool)
 
         box_inverse_transform = TransformList()
-        # batch level data augmentation
+        # 批级数据增强
         img, boxes = transforms_boxes.transpose(img, hflip=hflip, vflip=vflip, 
                                                 boxes=boxes,
                                                 transform_list=box_inverse_transform)
@@ -334,8 +334,8 @@ class DataloaderOneShotDetection():
                                                      transform_list=box_inverse_transform_this_scale)
             
             pyramid_box_inverse_transform.append(box_inverse_transform_this_scale)
-            img_pyramid.append( p_img )
-            boxes_pyramid.append( p_boxes )
+            img_pyramid.append( p_img )   #eg: <PIL.Image.Image image mode=RGB size=1280x960 at 0x7EFBBDBDBEB0>
+            boxes_pyramid.append( p_boxes )   #eg: BoxList(num_boxes=0, image_width=1280, image_height=960, )
 
         transforms_th = [transforms.ToTensor()]
         if self.img_normalization is not None:
@@ -357,7 +357,7 @@ class DataloaderOneShotDetection():
     def _transform_image_gt(self, img, do_augmentation=True, hflip=False, vflip=False, do_resize=True):
         do_augmentation = do_augmentation and self.data_augmentation is not None
         
-        # batch level data augmentation
+        # 批级数据增强
         img, _ = transforms_boxes.transpose(img, hflip=hflip, vflip=vflip, boxes=None, transform_list=None)
 
         if do_augmentation:
@@ -422,7 +422,7 @@ class DataloaderOneShotDetection():
         class_images, class_image_sizes = self.get_class_images_and_sizes(class_ids, do_augmentation=False)
         batch_class_images = [self._transform_image_gt(img, do_augmentation=False, do_resize=do_resize) for img in class_images]
 
-        # to have proper dimensions just add dimension zero to all images
+        # 要具有适当的维度，只需将维度零添加到所有图像
         batch_class_images = [img.unsqueeze(0) for img in batch_class_images]
         return batch_class_images, class_image_sizes, class_ids
 
@@ -430,7 +430,7 @@ class DataloaderOneShotDetection():
         return self.dataset.get_class_ids_for_image_ids(image_ids)
 
     def make_iterator_for_all_images(self, batch_size, num_random_pyramid_scales=0):
-        # create buckets again no to disturb or reshuffle buckets used for training
+        # 再次创建桶不要打乱或重新打乱用于训练的桶
         buckets_ids = self.dataset.split_images_into_buckets_by_size()
         
         batch_size = max(len(ids) for ids in buckets_ids) if batch_size is None else batch_size
@@ -442,7 +442,7 @@ class DataloaderOneShotDetection():
             
             # batch images
             for batch_start in range(0, size_b, batch_size):
-                self.logger.info("Image batch {0} out of {1}".format(i_batch, num_batches))
+                self.logger.info("图像批次 {0}中包含的图像个数是 {1}".format(i_batch, num_batches))
                 i_batch += 1
                 batch_ids = ids_b[batch_start : batch_start + batch_size]
 
@@ -450,7 +450,7 @@ class DataloaderOneShotDetection():
                 pyramid_box_inverse_transform_all_images = []
                 initial_img_size_this_batch = []
 
-                # select pyramid scale for this batch
+                # 为此批次选择金字塔比例尺
                 if not num_random_pyramid_scales:
                     pyramid_scales = self.pyramid_scales_eval
                 else:

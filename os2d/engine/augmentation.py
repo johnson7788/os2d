@@ -5,7 +5,7 @@ from os2d.structures.transforms import random_distort, crop
 
 class DataAugmentation():
     """
-    Class stores the parameters of all the data augmentations
+    类存储所有数据增强的参数
     """
     def __init__(self, random_flip_batches,
                        random_crop_size,
@@ -19,7 +19,7 @@ class DataAugmentation():
         self.batch_random_hflip = random_flip_batches
         self.batch_random_vflip = random_flip_batches
 
-        # color distortions
+        # 颜色失真
         self.do_random_color = random_color_distortion
         self.brightness_delta = 32/255.
         self.contrast_delta = 0.5

@@ -20,7 +20,7 @@ import os2d.utils.visualization as visualizer
 @torch.no_grad() # do evaluation in forward mode (for speed and memory)
 def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False):
     """
-    Evaluation of the provided model at one dataset
+    在一个数据集上评估所提供的模型
 
     Args:
         dataloader - the dataloader to get data
@@ -35,7 +35,7 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
     logger = logging.getLogger("OS2D.evaluate")
     dataset_name = dataloader.get_name()
     dataset_scale = dataloader.get_eval_scale()
-    logger.info("Starting to eval on {0}, scale {1}".format(dataset_name, dataset_scale))
+    logger.info("开始在数据集{0}上进行评估, 评估数量是 {1}".format(dataset_name, dataset_scale))
     t_start_eval = time.time()
     net.eval()
 
@@ -177,20 +177,20 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
                                                      num_random_pyramid_scales=0, num_random_negative_labels=-1,
                                                      class_image_augmentation=""):
     """
-    Generator to loop over dataset and apply the model to all elements.
-    The iterator will loop over images one by one.
-    Used in evaluate and .train.mine_hard_patches
+    生成器循环遍历数据集并将模型应用于所有元素。
+    迭代器将一张一张地遍历图像。
+    用于 evaluate 和 .train.mine_hard_patches
 
     Args:
-        dataloader - the dataloader to get data
+        dataloader - 数据加载器获取数据
         net - the network to use
         logger - the created logger
-        image_batch_size (int) - the number of images to put in one batch
+        image_batch_size (int) - 一批中要放入的图像数量
         is_cuda (bool) - use GPUs or not
-        num_random_pyramid_scales (int) - numnber of random pyramid scales to try, default (0) means the standard scales from config
+        num_random_pyramid_scales (int) - 要尝试的随机金字塔比例的数量，默认值 (0) 表示来自配置的标准比例
             passed to dataloader.make_iterator_for_all_images
-        num_random_negative_labels (int) - number of random negative labels to try, default (-1) means to add all possible labels
-        class_image_augmentation (str) - type of class image augmentation to do, default - no augmentation, support "rotation90" and "horflip"
+        num_random_negative_labels (int) - 要尝试的随机负标签数，默认 (-1) 表示添加所有可能的标签
+        class_image_augmentation (str) - 要进行的类图像增强类型, default - no augmentation, support "rotation90" and "horflip"
 
     Returns:
         Creates an iterator over tuples of data:
@@ -212,8 +212,8 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
             len(transform_corners_p) = num pyramid levels, tensor size: num_labels x 8 x num_anchors
     """
 
-    logger.info("Extracting scores from all images")
-    # get images of all classes
+    logger.info("从所有图像中提取分数")
+    # get images of all classes, class_images: list(tensor), 185,[1,3,265,216], [1,RGB,w,h] ,class_aspect_ratios:每个类的特征图的大小list,(w,h), class_ids: 类别id, list
     class_images, class_aspect_ratios, class_ids = dataloader.get_all_class_images()
     num_classes = len(class_images)
     assert len(class_aspect_ratios) == num_classes
@@ -226,7 +226,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
     # extract all class convolutions from batched class images
     class_conv_layer_batched = []
-    logger.info("Extracting weights from {0} classes{1}".format(num_classes,
+    logger.info("提取权重从 {0} 个类别中，{1}".format(num_classes,
         f" with {class_image_augmentation} augmentation" if class_image_augmentation else ""))
     for i in range(0, num_classes, class_batch_size):
         batch_class_ids = class_ids[i : i + class_batch_size]
@@ -268,7 +268,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
                 raise RuntimeError(f"Unknown value of class_image_augmentation: {class_image_augmentation}")
 
         for b_im in batch_class_images:
-            class_feature_maps = net.net_label_features([b_im])
+            class_feature_maps = net.net_label_features([b_im])   #前向传播，提取图片的类别特征图
             class_conv_layer = net.os2d_head_creator.create_os2d_head(class_feature_maps)
             class_conv_layer_batched.append(class_conv_layer)
     
@@ -276,7 +276,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
     iterator_batches = dataloader.make_iterator_for_all_images(image_batch_size, num_random_pyramid_scales=num_random_pyramid_scales)
     for batch_ids, pyramids_batch, box_transforms_batch, initial_img_size_batch in iterator_batches:
         t_start_batch = time.time()
-        # select labels to use for search at this batch
+        # 选择要用于此批次搜索的标签
         if num_random_negative_labels >= 0 :
             # randomly shuffle labels
             neg_labels = torch.randperm(len(class_conv_layer_batched))
@@ -288,11 +288,11 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
         else:
             # take all the labels - needed for evaluation
             batch_labels_local = torch.arange(len(class_conv_layer_batched))
-        
+        # 这个批次中的每个类别的id
         batch_class_ids = [class_ids[l // num_class_views] for l in batch_labels_local]
+        # 批次中所有查询图像的特征图尺寸
         batch_query_img_sizes = [query_img_sizes[l // num_class_views] for l in batch_labels_local]
-
-        # extract features at all pyramid levels
+        # 提取所有金字塔级别的特征
         batch_images_pyramid = []
         loc_scores = []
         class_scores = []
@@ -305,9 +305,9 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
         for batch_images in pyramids_batch:
             if is_cuda:
                 batch_images = batch_images.cuda()
-            
+            # batch_images： [1,3,960,1280], 原始图片特征
             t_start_features = time.time()
-            feature_maps = net.net_feature_maps(batch_images)
+            feature_maps = net.net_feature_maps(batch_images)   #resnet提取后的特征, [1,1024,60,80]
             torch.cuda.synchronize()
             t_cum_features += time.time() - t_start_features
 
@@ -320,7 +320,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
             assert class_batch_size == 1, "the iterator on images works only with labels batches of size 1"
 
             for i_class_batch in batch_labels_local:
-                # apply net at this pyramid level
+                #在此金字塔级别应用网络模型
                 loc_s_p, class_s_p, _, fm_sizes_p, transform_corners_p = \
                      net(class_head=class_conv_layer_batched[i_class_batch],
                          feature_maps=feature_maps)

@@ -371,23 +371,23 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
 
 
 def evaluate_model(dataloaders, net, cfg, criterion=None, print_per_class_results=False):
-    """Evaluation of the provided model at all validation datasets
+    """在所有验证数据集上评估所提供的模型
   
     Args:
-        dataloaders - a list of dataloaders to use for validation, at each validation stage all of them will be used sequentially
-        net - the network to use
-        cfg - config with all the parameters
-        criterion - criterion (usually the same one as used for training), can be None
-        print_per_class_results - flag showing whether to printout extra data (per class AP) - usually used at the final evaluation
+        dataloaders - 用于验证的数据加载器列表，在每个验证阶段，所有数据加载器都将按顺序使用
+        net - 要使用的模型
+        cfg - 配置所有参数
+        criterion - 损失（通常与训练使用的损失相同），可以是 None
+        print_per_class_results - 显示是否打印额外数据的标志（每类 AP）——通常在最终评估时使用, eg: True
 
     Returns:
-        meters_all (OrderedDict) - all computed metrics: one entry for each dataloader
-            meters_all.keys() - list of dataloader names
+        meters_all (OrderedDict) - 所有计算指标：每个数据加载器一个条目
+            meters_all.keys() - 数据加载器名称列表
             meters_all[d] (OrderedDict) - all metrics for dataloader with name d, e.g., meters_all[d]["mAP@0.50"] - mAP at IoU threshold 0.5
     """
     meters_all = OrderedDict()
     for dataloader in dataloaders:
-        # evaluate on validation
+        # 评估验证
         if dataloader is not None:
             meters_val = evaluate(dataloader, net, cfg, criterion=criterion, print_per_class_results=print_per_class_results)
             meters_all[dataloader.get_name()] = meters_val
@@ -398,15 +398,15 @@ def evaluate_model(dataloaders, net, cfg, criterion=None, print_per_class_result
 
 
 def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_eval=[]):
-    """Main train+val loop
+    """训练+评估的主要循环， train+val loop
   
     Args:
-        dataloader_train -dataloader to get training batches
-        net - the network to use
-        cfg - config with all the parameters
-        criterion - criterion to optimize
-        optimizer - optimization to use
-        dataloaders_eval - a list of dataloaders to use for validation, at each validation stage all of them will be used sequentially
+        dataloader_train - 数据加载器获取训练批次
+        net - 初始化后的模型
+        cfg - 配置所有参数
+        criterion - 损失函数
+        optimizer - 优化使用
+        dataloaders_eval - 用于验证的数据加载器列表，在每个验证阶段，所有数据加载器都将按顺序使用
 
     Returns nothing
     """
@@ -417,7 +417,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
     full_log = init_log()
    
     if cfg.train.optim.max_iter > 0 and cfg.train.do_training:
-        logger.info("Start training")
+        logger.info("开始训练")
 
         # setup the learning rate schedule
         _, anneal_lr_func = setup_lr(optimizer, full_log, cfg.train.optim.anneal_lr, cfg.eval.iter)
@@ -554,7 +554,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
 
 
     # evaluate the final model
-    logger.info("Final evaluation")
+    logger.info(" 最终评估模型")
     meters_eval = evaluate_model(dataloaders_eval, net, cfg, criterion, print_per_class_results=True)
 
     # add the final point

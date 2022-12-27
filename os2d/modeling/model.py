@@ -22,7 +22,7 @@ from .head import build_os2d_head_creator
 def build_os2d_from_config(cfg):
     logger = logging.getLogger("OS2D")
 
-    logger.info("Building the OS2D model")
+    logger.info("创建 OS2D 模型")
     img_normalization = {"mean":cfg.model.normalization_mean, "std": cfg.model.normalization_std}
     net = Os2dModel(logger=logger,
                     is_cuda=cfg.is_cuda,
@@ -50,11 +50,11 @@ def build_os2d_from_config(cfg):
     optimizer_state = net.init_model_from_file(cfg.init.model, init_affine_transform_path=cfg.init.transform)
 
     num_params, num_param_groups = count_model_parameters(net)
-    logger.info("OS2D has {0} blocks of {1} parameters (before freezing)".format(num_param_groups, num_params))
+    logger.info("OS2D模型有 {0} 个blocks，一共有 {1} 个参数parameters (before freezing)".format(num_param_groups, num_params))
 
-    # freeze transform parameters if requested
+    # 如果需要，冻结转换参数
     if cfg.train.model.freeze_transform:
-        logger.info("Freezing the transform parameters")
+        logger.info("冻结转换参数")
         net.freeze_transform_params()
 
     num_frozen_extractor_blocks = cfg.train.model.num_frozen_extractor_blocks
@@ -63,14 +63,14 @@ def build_os2d_from_config(cfg):
         net.freeze_extractor_blocks(num_blocks=num_frozen_extractor_blocks)
 
     num_params, num_param_groups = count_model_parameters(net)
-    logger.info("OS2D has {0} blocks of {1} trainable parameters".format(num_param_groups, num_params))
+    logger.info("OS2D模型有 {0} 个blocks，其中一共 {1} 个可训练参数".format(num_param_groups, num_params))
 
     return net, box_coder, criterion, img_normalization, optimizer_state
 
 
 class LabelFeatureExtractor(nn.Module):
-    """LabelFeatureExtractor implements the feature extractor from query images.
-    The main purpose pf this class is to run on a list of images of different sizes.
+    """LabelFeatureExtractor实现了查询图像的特征提取器。
+    该类的主要目的是在不同尺寸的图像列表上运行。
     """
     def __init__(self, feature_extractor):
         super(LabelFeatureExtractor, self).__init__()
@@ -132,30 +132,30 @@ class Os2dModel(nn.Module):
                        merge_branch_parameters=False, use_group_norm=False,
                        backbone_arch="resnet50",
                        use_inverse_geom_model=True,
-                       simplify_affine=False,
+                       simplify_affine=False,   #是否使用简单仿射变换，否则默认使用仿射变换
                        img_normalization=None):
         super(Os2dModel, self).__init__()
         self.logger = logger
-        self.use_group_norm = use_group_norm
-        if img_normalization:
+        self.use_group_norm = use_group_norm   #组归一化
+        if img_normalization:   #图片正则化  {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}
             self.img_normalization = img_normalization
         else:
             self.img_normalization = self.default_normalization
         self.net_feature_maps = build_feature_extractor(backbone_arch, use_group_norm)
+        print(f"提取特征的主干模型结构是: {self.net_feature_maps}")
         self.merge_branch_parameters = merge_branch_parameters
         extractor = self.net_feature_maps if self.merge_branch_parameters else build_feature_extractor(backbone_arch, use_group_norm)
-
-        # net to regress parameters of the transform
+        # net to regress parameters of the transform, net来回归变换的参数
         self.simplify_affine = simplify_affine
         self.use_inverse_geom_model = use_inverse_geom_model
 
-        # new code fot the network heads
+        # new code fot the network heads, OS2D的头部
         self.os2d_head_creator = build_os2d_head_creator(self.simplify_affine, is_cuda, self.use_inverse_geom_model,
                                                          self.net_feature_maps.feature_map_stride,
                                                          self.net_feature_maps.feature_map_receptive_field)
 
         self.net_label_features = LabelFeatureExtractor(feature_extractor=extractor)
-
+        # 默认情况下，将网络设置为评估模式，否则，当使用假图像来寻找特征图的大小时，wise batchnorm 被搞砸。
         # set the net to the eval mode by default, other wise batchnorm statistics get screwed when using dummy images to find feature map sizes
         self.eval()
 
@@ -163,12 +163,13 @@ class Os2dModel(nn.Module):
         self.is_cuda = is_cuda
 
         if self.is_cuda:
-            self.logger.info("Creating model on one GPU")
+            self.logger.info("把模型放到GPU上")
             self.cuda()
         else:            
             self.logger.info("Creating model on CPU")
 
     def train(self, mode=True, freeze_bn_in_extractor=False, freeze_transform_params=False, freeze_bn_transform=False):
+        # mode: True：代表训练， False：代表测试
         super(Os2dModel, self).train(mode)
         if freeze_bn_in_extractor:
             self.freeze_bn()
@@ -195,11 +196,11 @@ class Os2dModel(nn.Module):
         return self.net_feature_maps.get_num_blocks_in_feature_extractor()
 
     def apply_class_heads_to_feature_maps(self, feature_maps, class_head):
-        """Applies class heads to the feature maps
+        """将类头应用于特征图
 
         Args:
-            feature_maps (Tensor) - feature maps of size batch_size x num_labels x height x width
-            class_head (Os2dHead) - heads detecting some classes, created by an instance of Os2dHeadCreator
+            feature_maps (Tensor) - 特征图的形状 batch_size x num_labels x height x width
+            class_head (Os2dHead) - heads 检测一些类，由 Os2dHeadCreator 的实例创建
 
         Outputs:
             loc_scores (Tensor) - localization scores, size batch_size x num_labels x 4 x num_anchors
@@ -235,26 +236,26 @@ class Os2dModel(nn.Module):
     def forward(self, images=None, class_images=None,
                       feature_maps=None, class_head=None,
                       train_mode=False, fine_tune_features=True):
-        """ Forward pass of the OS2D model. Cant function in several different regimes:
-            [training mode] Extract features from input and class images, and applies the model to get 
-                clasificaton/localization scores of all classes on all images
+        """ OS2D 模型的前向传递。能在几种不同的模式下运作：
+            [训练模式]
+                从输入和类图像中提取特征，并应用模型来获得所有图像上所有类的分类/定位分数
                 Args:
-                    images (tensor) - batch of input images
-                    class_images (list of tensors) - list of class images (possibly of different sizes)
+                    images (tensor) - 一批输入图像
+                    class_images (list of tensors) - 类图像列表（可能大小不同）
                     train_mode (bool) - should be True
-                    fine_tune_features (bool) - flag showing whether to enable gradients over features
+                    fine_tune_features (bool) - 显示是否启用特征梯度的标志
             [evaluation mode]
-                    feature_maps (tensor) - pre-extracted feature maps, sized batch_size x feature_dim x height x width
-                    class_head (Os2dHead) - head created to detect some classes,
-                        inside has class_feature_maps, sized class_batch_size x feature_dim x class_height x class_width
+                    feature_maps (tensor) - 预提取的特征图，大小为 batch_size x feature_dim x height x width
+                    class_head (Os2dHead) - head 被创建来检测一些类，
+                        内部含有： class_feature_maps, 尺寸大小是： class_batch_size x feature_dim x class_height x class_width
                     train_mode (bool) - should be False
         Outputs:
-            loc_scores (tensor) - localization prediction, sized batch_size x num_classes x 4 x num_anchors (bbox parameterization)
-            class_scores (tensor) - classification prediction, sized batch_size x num_classes x num_anchors
-            class_scores_transform_detached (tensor) - same, but with transofrms detached from the computational graph
-                used not to tune transofrmation on the negative examples
-            fm_sizes (FeatureMapSize) - size of the output score map, num_anchors == fm_sizes.w * fm_sizes.h
-            transform_corners (tensor) - points defining parallelograms showing transformations, sized batch_size x num_classes x 8 x num_anchors
+            loc_scores (tensor) - bbox位置预测, 形状： batch_size x num_classes x 4 x num_anchors (bbox parameterization)
+            class_scores (tensor) - 分类预测, 形状 batch_size x num_classes x num_anchors
+            class_scores_transform_detached (tensor) -
+                        分类预测，但与计算图分离的变换用于不调整负样本的变换
+            fm_sizes (FeatureMapSize) - 输出分数图的大小, num_anchors == fm_sizes.w * fm_sizes.h
+            transform_corners (tensor) - 定义平行四边形的点显示变换, 形状 batch_size x num_classes x 8 x num_anchors
         """
         with torch.set_grad_enabled(train_mode and fine_tune_features):
             # extract features
@@ -288,28 +289,28 @@ class Os2dModel(nn.Module):
                                                 is_cuda=self.is_cuda)
 
     def init_model_from_file(self, path, init_affine_transform_path=""):
-        """init_model_from_file loads weights from a binary file.
-        It will try several ways to load the weights (in the order below) by doing the follwoing steps:
-        1) Load full checkpoint (created by os2d.utils.logger.checkpoint_model)
-            - reads file with torch.load(path)
-            - expects a dict with "net" as a key which is expected to load with self.load_state_dict
-            - if finds key "optimizer" as well outputs it to try to init from it later
-        2) in (1) is not a success will try to init the backbone separately see _load_network
-        3) if init_affine_transform_path is provided will try to additionally load the transformation model
-            (CAREFUL! it will override weights from both (1) and (2))
+        """init_model_from_file 从二进制文件加载权重。
+        它将通过执行以下步骤尝试几种加载权重的方法（按以下顺序）：
+        1) 加载完整checkpoint (created by os2d.utils.logger.checkpoint_model)
+            - 使用 torch.load(path) 读取文件
+            - 期望一个以“net”为键的字典，期望用 self.load_state_dict 加载
+            - 如果找到关键的“优化器”并输出它以便稍后尝试从中初始化
+        2) 如果 (1) 中没有成功将尝试单独初始化主干网，请参阅_load_network
+        3) 如果提供了 init_affine_transform_path 将尝试另外加载转换模型，
+            （小心！它会覆盖 (1) 和 (2) 的权重）
         """
         # read the checkpoint file
         optimizer = None
         try:
             if path:
-                self.logger.info("Reading model file {}".format(path))
+                self.logger.info("读取模型文件 {}".format(path))
                 checkpoint = torch.load(path)
             else:
                 checkpoint = None
 
             if checkpoint and "net" in checkpoint:
                 self.load_state_dict(checkpoint["net"])
-                self.logger.info("Loaded complete model from checkpoint")
+                self.logger.info("通过checkpoint加载完成")
             else:
                 self.logger.info("Cannot find 'net' in the checkpoint file")
                 raise RuntimeError()
@@ -318,7 +319,7 @@ class Os2dModel(nn.Module):
                 optimizer = checkpoint["optimizer"]
                 self.logger.info("Loaded optimizer from checkpoint")
             else:
-                self.logger.info("Cannot find 'optimizer' in the checkpoint file. Initializing optimizer from scratch.")
+                self.logger.info("没有找到 'optimizer' 在 checkpoint 文件中. 重新初始化optimizer.")
 
         except (KeyboardInterrupt, SystemExit):
             raise

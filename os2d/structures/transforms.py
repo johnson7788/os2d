@@ -11,9 +11,9 @@ from .bounding_box import BoxList, box_intersection_over_reference, FLIP_LEFT_RI
 
 class TransformList:
     """
-    This class allows to store the sequence of transformations and allow to execute them in the reversed order.
-    Implemented for storing the transformation of bounding boxes during data augmentation
-    and for returning the boxes to the original coordinates.
+    此类允许存储转换序列并允许以相反的顺序执行它们。
+    实现用于在数据增强期间存储bounding boxes的转换并将框返回到原始坐标。
+
     """
     def __init__(self):
         self._transforms = []
