@@ -77,10 +77,10 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
                                                         img_size_pyramid, num_labels,
                                                         default_box_transform_pyramid=box_reverse_transform)
 
-            # return the original labels back
+            # 返回原始标签
             gt_boxes_one_image.add_field("labels", gt_labels_one_image)
 
-            # vizualize GT for debug
+            # 可视化 GT 以进行调试
             if cfg.visualization.eval.show_gt_boxes:
                 visualizer.show_gt_boxes(image_id, gt_boxes_one_image, class_ids, dataloader)
 
@@ -91,7 +91,7 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
 
             add_batch_dim = lambda list_of_tensors: [t.unsqueeze(0) for t in list_of_tensors]
             if criterion is not None:
-                # if criterion is provided, use it to compute all metrics it can
+                # 如果提供了criterion，则使用它来计算它可以计算的所有指标
                 losses_iter = criterion(add_batch_dim(image_loc_scores_pyramid) if image_loc_scores_pyramid[0] is not None else None,
                                         add_batch_dim(loc_targets_pyramid),
                                         add_batch_dim(image_class_scores_pyramid),
@@ -169,7 +169,7 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
                                                                                                        recall))
     # save timing
     losses["eval_time"] = (time.time() - t_start_eval)
-    logger.info("Evaluated on {0}, scale {1}".format(dataset_name, dataset_scale))
+    logger.info("数据集 {0} 评估完成, scale {1}".format(dataset_name, dataset_scale))
     print_meters(losses, logger)
     return losses
 

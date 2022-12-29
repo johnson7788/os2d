@@ -40,4 +40,8 @@ eval:
   dataset_names: ("grozi-val-new-cl",)
   dataset_scales: (1280.0,)
   mAP_iou_thresholds: (0.5,)
+# 评估中显示ground truth box和show_detections
+visualization:
+  eval:
+    show_detections: True
   

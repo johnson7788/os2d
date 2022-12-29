@@ -388,8 +388,8 @@ def nms(boxes, nms_iou_threshold, nms_max_batch=10000, nms_score_threshold=float
 
 
 def cat_boxlist(bboxes):
-    """    Concatenates a list of BoxList (having the same image size) into a
-    single BoxList
+    """
+    将 BoxList 的列表（具有相同的图像大小）拼接成一个 BoxList
     Arguments:
         bboxes (list[BoxList])
 

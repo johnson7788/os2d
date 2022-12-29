@@ -450,20 +450,20 @@ class Os2dBoxCoder:
     def decode_pyramid(self, loc_scores_pyramid, cls_scores_pyramid, img_size_pyramid, class_ids,
                nms_score_threshold=0.0, nms_iou_threshold=0.3,
                inverse_box_transforms=None, transform_corners_pyramid=None):
-        """Decode pyramids of classification and localization scores to actual detections.
+        """将分类金字塔和定位分数解码为实际检测。
 
         Args:
-            loc_scores_pyramid (list of tensors) - localization scores for all pyramid levels,
-                each level is of size num_labels x 4 x num_anchors
-            cls_scores_pyramid (list of tensors) - classification scores for all pyramid levels,
+            loc_scores_pyramid (list of tensors) - 所有金字塔级别的本地化分数，
+                each level is of size num_labels x 4 x num_anchors， 【185，,4，,4800】
+            cls_scores_pyramid (list of tensors) - 所有金字塔级别的分类分数，
                 each level is of size num_labels x num_anchors
-            img_size_pyramid (list of FeatureMapSize) - sizes of images for all the pyramid levels
-            class_ids (list of int) - global ids of classes, loc_scores_pyramid/cls_scores_pyramid correspond to local class
+            img_size_pyramid (list of FeatureMapSize) - sizes of images for all the pyramid levels， [FeatureMapSize(w=1280, h=960)]
+            class_ids (list of int) - global ids of classes, loc_scores_pyramid/cls_scores_pyramid correspond to local class， list【。。。】185个
                 need to output the global ones
-            nms_score_threshold (float) - remove detection with too small scores
+            nms_score_threshold (float) - 删除分数太小的检测
             nms_iou_threshold (float) - IoU threshold for NMS
-            inverse_box_transforms (list of TransformList) - for each level, the transformation to convert boxes to the original image size
-            transform_corners_pyramid (list of tensors)- for each level, give the end points of the parallelogram defining the transformation,
+            inverse_box_transforms (list of TransformList) - 对于每个级别，将框转换为原始图像大小的转换
+            transform_corners_pyramid (list of tensors)- 对于每个级别，给出定义变换的平行四边形的端点，
                 each level is of size num_labels x 8 x num_anchors
 
         Returns:
@@ -481,14 +481,14 @@ class Os2dBoxCoder:
         boxes_per_label = []
         transform_corners_per_label = []
 
-        # can have identical entries in class ids - need to merge those together
+        # 类 ID 中可以有相同的条目 - 需要将它们合并在一起
         for real_label in set(class_ids):
             masked_boxes_pyramid, masked_score_pyramid, masked_default_boxes_pyramid, masked_labels_pyramid = [], [], [], []
             masked_transform_corners_pyramid = []
             for i_label in range(num_classes):
                 if class_ids[i_label] != real_label:
                     continue
-                # decode boxes at each pyramid level and joint NMS afterwards
+                # 在每个金字塔级别解码框，然后联合 NMS
                 for i_p, (loc_scores, cls_scores) in enumerate(zip(loc_scores_pyramid, cls_scores_pyramid)):
                     default_boxes = default_boxes_per_level[i_p]
                     default_boxes = default_boxes.to(device=device)
@@ -524,7 +524,7 @@ class Os2dBoxCoder:
                         # merge boxes from pyramid levels
                         masked_boxes_pyramid.append(masked_boxes)
 
-            # NMS has to be done across pyramid levels
+            # NMS 必须跨金字塔层次进行
             if len(masked_boxes_pyramid) > 0:
                 boxes_after_nms = self._nms_box_lists(masked_boxes_pyramid, nms_iou_threshold)
                 boxes_per_label.append(boxes_after_nms)

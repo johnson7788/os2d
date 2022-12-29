@@ -169,8 +169,8 @@ def decode_scores_show_detections(dataloader, images, class_ids,
 
 
 def show_detection_from_dataloader(boxes, image_id, dataloader, cfg_visualization, class_ids=None):
-    print("Showing detections for image {0}, dataset {1}".format(image_id, dataloader.get_name()))
-    image_to_show = get_image_from_dataloader(image_id, dataloader)
+    print("显示图片的id为: {0} 的检测结果, 数据集名称是: {1}".format(image_id, dataloader.get_name()))
+    image_to_show = get_image_from_dataloader(image_id, dataloader)  #打开二进制图片
     show_detections(boxes, image_to_show,
                     cfg_visualization,
                     class_ids=class_ids, image_id=image_id)
@@ -185,7 +185,7 @@ def show_detections(boxes, image_to_show,
     if class_ids:
         for i_detection in range(labels.size(0)):
             labels[i_detection] = int(class_ids[labels[i_detection]])
-
+    # image_to_show：二进制图片, boxes:预测的bbox, scores:预测的类别分数，labels：真实的类别标签
     show_annotated_image(img=image_to_show,
                                boxes=boxes,
                                default_boxes=boxes.get_field("default_boxes") if boxes.has_field("default_boxes") else None,
@@ -259,7 +259,7 @@ def show_annotated_image(img, boxes, labels, scores, class_ids, score_threshold=
         boxes = boxes.bbox_xyxy
 
     if transform_corners is not None:
-        # draw polygons representing the corners of a transformation
+        # 绘制代表变换角的多边形
         transform_corners = transform_corners[good_ids].cpu()
 
     vis_image(img,
@@ -275,17 +275,17 @@ def show_annotated_image(img, boxes, labels, scores, class_ids, score_threshold=
 
 
 def vis_image(img, boxes=None, label_names=None, scores=None, colors=None, image_id=None, polygons=None,showfig=False):
-    """Visualize a color image.
-
+    """
+    可视化彩色图像。
     Args:
-      img: (PIL.Image/tensor) image to visualize
-      boxes: (tensor) bounding boxes, sized [#obj, 4], format: x1y1x2y2
-      label_names: (list) label names
-      scores: (list) confidence scores
-      colors: (list) colors of boxes
-      image_id: show this image_id as axes caption
+      img: (PIL.Image/tensor) 一个PIL的二进制原始图像
+      boxes: (tensor) bounding boxes, sized [#目标数量, 4], format: x1y1x2y2, eg{20,4]
+      label_names: (list) 每个bbox的类别名称
+      scores: (list) 每个类别的置信度分数
+      colors: (list) list, 每个bbox的颜色
+      image_id: 将此 image_id 显示为轴字幕
       polygon: (tensor) quadrilateral defining the transformations [#obj, 8]
-      showfig: (bool) - flag showing whether to call plt.show() at the end (e.g., stopping the script)
+      showfig: (bool) - 显示是否在最后调用 plt.show() 的标志（例如，停止脚本）
 
     Reference:
       https://github.com/kuangliu/torchcv/blob/master/torchcv/visualizations/vis_image.py

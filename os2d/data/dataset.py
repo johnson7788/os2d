@@ -673,7 +673,7 @@ class DatasetOneShotDetection(data.Dataset):
                 self.image_per_image_id[image_id] = img
         else:
             img = self.image_per_image_id[image_id]
-
+        # 返回二进制的图片
         return img
 
     @staticmethod
