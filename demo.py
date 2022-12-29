@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# This is a demo illustrating an application of the OS2D method on one image.
+# 这是一个演示，说明了 OS2D 方法在一个图像上的应用。
 # Demo assumes the OS2D code is [installed](./INSTALL.md).
-
-# In[1]:
 
 
 import os
@@ -46,10 +44,10 @@ net, box_coder, criterion, img_normalization, optimizer_state = build_os2d_from_
 
 # In[5]:
 
-
-input_image = read_image("data/demo/input_image.jpg")
-class_images = [read_image("data/demo/class_image_0.jpg"),
-                read_image("data/demo/class_image_1.jpg")]
+data_dir = "data/mydemo"
+input_image = read_image(f"{data_dir}/input_image.jpg")
+class_images = [read_image(f"{data_dir}/class_image_0.jpg"),
+                read_image(f"{data_dir}/class_image_1.jpg")]
 class_ids = [0, 1]
 
 
