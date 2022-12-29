@@ -35,9 +35,6 @@ cfg.is_cuda = torch.cuda.is_available()
 # In[3]:
 
 
-get_ipython().system('./os2d/utils/wget_gdrive.sh models/os2d_v2-train.pth 1l_aanrxHj14d_QkCpein8wFmainNAzo8')
-
-
 # In[4]:
 
 
@@ -56,9 +53,7 @@ class_images = [read_image("data/demo/class_image_0.jpg"),
 class_ids = [0, 1]
 
 
-# Use torchvision to convert images to torch.Tensor and to apply normalization.
-
-# In[6]:
+# 使用 torchvision 将图像转换为 torch.Tensor 并应用归一化。
 
 
 transform_image = transforms.Compose([
@@ -67,9 +62,7 @@ transform_image = transforms.Compose([
                       ])
 
 
-# Prepare the input image
-
-# In[7]:
+#准备输入图像
 
 
 h, w = get_image_size_after_resize_preserving_aspect_ratio(h=input_image.size[1],
@@ -83,10 +76,7 @@ if cfg.is_cuda:
     input_image_th = input_image_th.cuda()
 
 
-# Prepare the class images
-
-# In[8]:
-
+# 准备类别图片
 
 class_images_th = []
 for class_image in class_images:
@@ -104,18 +94,11 @@ for class_image in class_images:
 
 # Run the network with one command
 
-# In[9]:
-
 
 with torch.no_grad():
      loc_prediction_batch, class_prediction_batch, _, fm_size, transform_corners_batch = net(images=input_image_th, class_images=class_images_th)
 
-
-# Alternatively one can run the stages of the model separatly, which is convenient, e.g., for sharing class feature extraction between many input images.
-
-# In[10]:
-
-
+# 或者，可以单独运行模型的各个阶段，这很方便，例如，用于在许多输入图像之间共享类特征提取。
 # with torch.no_grad():
 #     feature_map = net.net_feature_maps(input_image_th)
 
@@ -125,11 +108,7 @@ with torch.no_grad():
 #     loc_prediction_batch, class_prediction_batch, _, fm_size, transform_corners_batch = net(class_head=class_head,
 #                                                                                             feature_maps=feature_map)
 
-
-# Convert image organized in batches into images organized in pyramid levels. Not needed in the demo, but essential for multiple images in a batch and multiple pyramid levels.
-
-# In[11]:
-
+# 将按批次组织的图像转换为按金字塔级别组织的图像。演示中不需要，但对于批次中的多个图像和多个金字塔级别必不可少。
 
 
 image_loc_scores_pyramid = [loc_prediction_batch[0]]
@@ -138,10 +117,7 @@ img_size_pyramid = [FeatureMapSize(img=input_image_th)]
 transform_corners_pyramid = [transform_corners_batch[0]]
 
 
-# Decode network outputs into detection boxes
-
-# In[12]:
-
+# 将网络输出解码为检测框
 
 boxes = box_coder.decode_pyramid(image_loc_scores_pyramid, image_class_scores_pyramid,
                                            img_size_pyramid, class_ids,
@@ -149,21 +125,14 @@ boxes = box_coder.decode_pyramid(image_loc_scores_pyramid, image_class_scores_py
                                            nms_score_threshold=cfg.eval.nms_score_threshold,
                                            transform_corners_pyramid=transform_corners_pyramid)
 
-# remove some fields to lighten visualization                                       
+# 删除一些字段以减轻可视化
 boxes.remove_field("default_boxes")
 
-
-# In[13]:
-
-
-# Note that the system outputs the correaltions that lie in the [-1, 1] segment as the detection scores (the higher the better the detection).
+# 请注意，系统输出 [-1, 1] 段中的相关作为检测分数（越高检测越好）。
 scores = boxes.get_field("scores")
 
 
-# Show class images
-
-# In[14]:
-
+# 显示类别图片
 
 figsize = (8, 8)
 fig=plt.figure(figsize=figsize)
@@ -173,11 +142,7 @@ for i, class_image in enumerate(class_images):
     plt.imshow(class_image)
     plt.axis('off')
 
-
-# Show fixed number of detections that are above a certain threshold. Yellow rectangles show detection boxes. Each box has a class label and the detection scores (the higher the better the detection). Red parallelograms illustrate the affine transformations that align class images to the input image at the location of detection.
-
-# In[15]:
-
+# 显示固定数量的高于特定阈值的检测。黄色矩形显示检测框。每个box子都有一个类别标签和检测分数（越高的检测效果越好）。红色平行四边形说明了将类图像与检测位置的输入图像对齐的仿射变换。
 
 plt.rcParams["figure.figsize"] = figsize
 
