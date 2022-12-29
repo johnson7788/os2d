@@ -212,16 +212,16 @@ class Os2dBoxCoder:
 
     @staticmethod
     def assign_anchors_to_boxes_threshold(detection_boxes, annotation_boxes, matcher):
-        """assign_anchors_to_boxes_threshold is a wrapper to call the Matcher class of torchvision.
-        Assigns proposal boxes to the annotation boxes.
-        detection_boxes, annotation_boxes are BoxList.
-        matcher is a torchvision Matcher instance.
+        """assign_anchors_to_boxes_threshold 是调用 torchvision 的 Matcher 类的装饰器。
+        将建议框分配给标注框。
+        detection_boxes, annotation_boxes 都是BoxList。
+        matcher 是一个 torchvision Matcher 实例。
         """
+        # 计算iou
         ious = boxlist_iou(annotation_boxes, detection_boxes)
-
         index = matcher(ious)
 
-        # assign difficult flags
+        # 分配困难的标志, 困难样本
         class_difficult_flags = annotation_boxes.get_field("difficult")
         good_index_mask = index >= 0
         if good_index_mask.any():
@@ -305,13 +305,13 @@ class Os2dBoxCoder:
         
     @staticmethod
     def build_loc_targets(class_boxes, default_boxes):
-        """build_loc_targets is a wrapper for the torchvision implemetation of box encoding
-        Mush be a static method as it is used in Os2dHead.forward, when there is no access to the boxcoder object
-
+        """
+        build_loc_targets 是框编码的 torchvision 实现的装饰器
+        当无法访问 boxcoder 对象时，必须是 Os2dHead.forward 中使用的静态方法
         Ref: https://github.com/pytorch/vision/blob/master/torchvision/models/detection/_utils.py
         """
-        # make sure that no spatial size of any box is too small
-        # too small boxes cause NaN in the gradient of torch.log inside encode_boxes
+        # 确保任何box子的空间尺寸都不会太小
+        # 太小的box子会导致 encode_boxes 内 torch.log 的梯度为 NaN
         class_boxes.clip_to_min_size(min_size=1)
         default_boxes.clip_to_min_size(min_size=1)
         class_loc_targets = encode_boxes(class_boxes.bbox_xyxy, default_boxes.bbox_xyxy, BOX_ENCODING_WEIGHTS)
@@ -331,15 +331,15 @@ class Os2dBoxCoder:
         return BoxList(box_preds, image_size=default_boxes.image_size, mode="xyxy")
 
     def encode(self, boxes, img_size, num_labels, default_box_transform=None):
-        """Encode target bounding boxes and class labels.
-        Classification target assignment is done with self.assign_anchors_to_boxes_threshold.
-        Localization target assignment is doen with self.build_loc_targets.
-        The set of anchor boxes is defined by self._get_default_boxes(img_size).
+        """对目标bounding boxes和类标签进行编码。
+        分类目标分配是通过 self.assign_anchors_to_boxes_threshold 完成的。
+        局部化目标分配是使用 self.build_loc_targets 完成的。
+        锚框集由 self._get_default_boxes(img_size) 定义。
 
         Args:
-          boxes (BoxList) - bounding boxes that need to be encoded
-          img_size (FeatureMapSize) - size of the image at which to do decoding
-            Note that img_size can be not equal to boxes.image_size
+          boxes (BoxList) - 需要编码的bounding boxes
+          img_size (FeatureMapSize) - 进行解码的图像大小
+            注意 img_size 可以不等于 boxes.image_size
           num_labels (int) - labels from 0,...,num_labels-1 can appear in boxes.get_field("labels")
           default_box_transform (TransformList) - transformation to convert the boxes to the img_size scale
 
@@ -363,17 +363,17 @@ class Os2dBoxCoder:
             ids = torch.nonzero(label_mask).view(-1)
 
             if ids.numel() > 0:
-                # there are boxes of this class on this image
+                # 此图像上有此类框
                 class_boxes = boxes[ids]
 
                 index, ious = self.assign_anchors_to_boxes_threshold(default_boxes, class_boxes, self.matcher)
                 ious_max_gt = ious.max(0)[0] # IoU with the best fitting GT box
 
-                # copy the GT boxes to match anchors
-                # anchors that are not assigned to anything get a dummy box (with index 0)
-                # it's done this way to avoid complicated tensor operations
+                # 复制 GT 框以匹配anchor
+                # 没有分配给任何东西的anchor得到一个虚拟框（索引为 0）
+                # 这样做是为了避免复杂的张量运算
                 class_boxes = class_boxes[index.clamp(min=0)]  # negative index not supported
-
+                # class_loc_targets： 【4800，,4】
                 class_loc_targets = self.build_loc_targets(class_boxes, default_boxes)
 
                 # assign labels
@@ -386,33 +386,34 @@ class Os2dBoxCoder:
                 class_cls_targets = torch.zeros(len(default_boxes), dtype=torch.long)
 
             loc_targets.append(class_loc_targets.transpose(0, 1).contiguous()) 
-            # for the network implementation, we want this order of dimensions
+            # 对于网络实现，我们想要这个维度顺序
             cls_targets.append(class_cls_targets)
-
+        # loc_targets: [185] --> loc_targets: [185,4,4800], [185是类别，4是bbox4个点, 4800,是bbox个数]
         loc_targets = torch.stack(loc_targets, 0)
-        cls_targets = torch.stack(cls_targets, 0)
+        cls_targets = torch.stack(cls_targets, 0) #[185,4800], [185是类别,4800是每个bbox]
 
         return loc_targets, cls_targets
 
     def encode_pyramid(self, boxes, img_size_pyramid, num_labels,
                        default_box_transform_pyramid=None):
-        """encode_pyramid is a wrapper that applies encode to each pyramid level.
+        """encode_pyramid 是将编码应用于每个金字塔级别的装饰器。
         See encode for mode details.
 
         Args:
-          boxes (BoxList) - bounding boxes that need to be encoded
-          img_size_pyramid (list of FeatureMapSize) - list of sizes for all pyramid levels
-          num_labels (int) - labels from 0,...,num_labels-1 can appear in boxes.get_field("labels")
-          default_box_transform_pyramid (list TransformList) - for each pyramid level, a transformation to convert the boxes to the img_size scale of that level
+          boxes (BoxList) - 需要编码的bounding boxes
+          img_size_pyramid (list of FeatureMapSize) - 所有金字塔级别的大小列表, [FeatureMapSize(w=1280, h=960)]
+          num_labels (int) - eg: 185, labels from 0,...,num_labels-1 can appear in boxes.get_field("labels")
+          default_box_transform_pyramid (list TransformList) - 对于每个金字塔级别，将框转换为该级别的 img_size 比例的转换
 
         Outputs:
-          loc_targets_pyramid (tensor) - encoded bounding boxes for each pyramid level
-          cls_targets_pyramid (tensor) - encoded class labels for each pyramid level
+          loc_targets_pyramid (tensor) - 每个金字塔级别的编码bounding boxes
+          cls_targets_pyramid (tensor) - 每个金字塔级别的编码类标签
         """
         num_pyramid_levels = len(img_size_pyramid)
         
         loc_targets_pyramid = []
         cls_targets_pyramid = []
+        # 对这一级的特征金字塔，所有预测的bbox的位置回归和类别判断
         for i_p in range(num_pyramid_levels):
             loc_targets_this_level, cls_targets_this_level = \
                     self.encode(boxes, img_size_pyramid[i_p], num_labels,

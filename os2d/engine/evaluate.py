@@ -57,18 +57,19 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
                     box_reverse_transform, image_fm_sizes_p, transform_corners_pyramid\
                     = data
         image_ids.append(image_id)
-
+        # img_size_pyramid: [FeatureMapSize(w=1280, h=960)]
         num_evaluted_images += 1
         img_size_pyramid = [FeatureMapSize(img=img) for img in image_pyramid]
-
+        # num_labels： 类别数量,185
         num_labels = len(class_ids)
+        # gt_boxes_one_image: 获取image_id对应的图片的bbox信息，真实的bbox信息，ground truth
         gt_boxes_one_image = dataloader.get_image_annotation_for_imageid(image_id)
         gt_boxes.append(gt_boxes_one_image)
-
         # compute losses
         if len(gt_boxes_one_image) > 0:
-            # there is some annotation for this image
+            # 这张图片标注信息，gt_labels_one_image获取ground truth
             gt_labels_one_image = gt_boxes_one_image.get_field("labels")
+            # gt_boxes_one_image中的全局标签类别已经被换成本地的标签类别
             dataloader.update_box_labels_to_local(gt_boxes_one_image, class_ids)
 
             loc_targets_pyramid, class_targets_pyramid = \
@@ -359,10 +360,10 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
                 image_fm_sizes_p.append(fm_sizes[i_p][0])
 
-            # get a pyramid of one image[i_p]
+            # 得到一个图像的金字塔  [i_p], list, [3,960,1280]
             one_image_pyramid = [p[i_image_in_batch] for p in batch_images_pyramid]
 
-            # extract the box transformations
+            # 提取box变换
             box_reverse_transforms = box_transforms_batch[i_image_in_batch]
 
             logger.info(timing_str + "Net time: {0}".format(time_since(t_start_batch)))

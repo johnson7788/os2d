@@ -705,7 +705,7 @@ class DatasetOneShotDetection(data.Dataset):
         return boxes
 
     def get_image_annotation_for_imageid(self, image_id):
-        # get data for this image
+        # 根据图片的id，获取图片的尺寸，bbox标签信息
         image_data = self.gtboxframe[self.gtboxframe["imageid"] == image_id]
         img_size = self.image_size_per_image_id[image_id]
         boxes = self.get_boxes_from_image_dataframe(image_data, img_size)

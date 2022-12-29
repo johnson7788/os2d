@@ -487,7 +487,8 @@ class DataloaderOneShotDetection():
 
     @staticmethod
     def update_box_labels_to_local(boxes, class_ids):
-        label_ids_global = boxes.get_field("labels")
+        label_ids_global = boxes.get_field("labels")  #tensor([30, 30, 30])有3个bbox，每个的类别id
+        # label_ids_local: tensor([0, 0, 0])  换成本地标签
         label_ids_local = DataloaderOneShotDetection.convert_label_ids_global_to_local(label_ids_global, class_ids)
         boxes.add_field("labels", label_ids_local)
     
