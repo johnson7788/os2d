@@ -123,6 +123,11 @@ python main.py --config-file experiments/config_training.yml model.use_inverse_g
 cd $OS2D_ROOT
 python main.py --config-file experiments/config_training.yml model.use_inverse_geom_model True model.use_simplified_affine_model False train.objective.loc_weight 0.0 train.model.freeze_bn_transform True model.backbone_arch ResNet50 init.model models/imagenet-caffe-resnet50-features-ac468af-renamed.pth init.transform models/weakalign_resnet101_affine_tps.pth.tar train.mining.do_mining True output.path output/os2d_v2-train
 ```
+
+我的测试, 按照models/README.md 下载和转换模型
+python main.py --config-file experiments/config_training.yml model.use_inverse_geom_model True model.use_simplified_affine_model False train.objective.loc_weight 0.0 train.model.freeze_bn_transform True model.backbone_arch ResNet50 init.model models/imagenet-caffe-resnet50-features-ac468af-converted.pth init.transform models/weakalign_resnet101_affine_tps.pth.tar train.mining.do_mining True output.path output/os2d_v2-train
+
+
 由于采用了困难碎片挖掘，这个过程相当缓慢。如果没有它，训练会更快，但产生的结果略差。
 ```bash
 cd $OS2D_ROOT

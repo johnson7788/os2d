@@ -1,7 +1,7 @@
 ## Pretrained models
 
 ### The semantic alignment model trained on [PF-PASCAL dataset](https://www.di.ens.fr/willow/research/proposalflow/)
-The semantic alignment model of [Rocco et al.](https://github.com/ignacio-rocco/weakalign) contains the weights of both feature extractor and the transformtion network. The model can be downloaded as follows:
+[Rocco 等人](https://github.com/ignacio-rocco/weakalign) 的语义对齐模型包含特征提取器和转换网络的权重。模型可以通过以下方式下载：
 ```bash
 cd $OS2D_ROOT/models
 wget http://www.di.ens.fr/willow/research/weakalign/trained_models/weakalign_resnet101_affine_tps.pth.tar
@@ -16,13 +16,13 @@ wget https://download.pytorch.org/models/resnet101-5d3b4d8f.pth
 ```
 
 ### Models trained on [ImageNet](http://www.image-net.org/) for classification in Caffe2
-Some projects have reported that specific weights os ResNets originally trained in Caffe2 work better, e.g., in image retrieval. We use these weights ported to PyTorch by [Radenović F. et al.](https://github.com/filipradenovic/cnnimageretrieval-pytorch) the models can be downloaded as follows (links from [here](https://github.com/filipradenovic/cnnimageretrieval-pytorch/blob/master/cirtorch/networks/imageretrievalnet.py)):
+一些项目报告说，最初在 Caffe2 中训练的特定权重 os ResNets 效果更好，例如，在图像检索中。We use these weights ported to PyTorch by [Radenović F. et al.](https://github.com/filipradenovic/cnnimageretrieval-pytorch) the models can be downloaded as follows (links from [here](https://github.com/filipradenovic/cnnimageretrieval-pytorch/blob/master/cirtorch/networks/imageretrievalnet.py)):
 ```bash
 cd $OS2D_ROOT/models
 wget http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/imagenet/imagenet-caffe-resnet50-features-ac468af.pth
 wget http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/imagenet/imagenet-caffe-resnet101-features-10a101d.pth
 ```
-These models are in a slightly different format from standard PyTorch, so we need to do some weight surgery to convert them.
+这些模型的格式与标准 PyTorch 略有不同，因此我们需要做一些权重手术来转换它们。
 ```bash
 conda activate os2d
 python convert_resnet_caffe2_cirtorch_to_pytorch.py imagenet-caffe-resnet50-features-ac468af.pth

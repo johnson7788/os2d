@@ -14,14 +14,11 @@ import torchvision.transforms as transforms
 
 from os2d.modeling.model import build_os2d_from_config
 from os2d.config import cfg
-import  os2d.utils.visualization as visualizer
+import os2d.utils.visualization as visualizer
 from os2d.structures.feature_map import FeatureMapSize
 from os2d.utils import setup_logger, read_image, get_image_size_after_resize_preserving_aspect_ratio
 
 logger = setup_logger("OS2D")
-
-
-# In[2]:
 
 
 # use GPU if have available
@@ -30,19 +27,11 @@ cfg.is_cuda = torch.cuda.is_available()
 
 # Download the trained model (is the script does not work download from [Google Drive](https://drive.google.com/open?id=1l_aanrxHj14d_QkCpein8wFmainNAzo8) and put to models/os2d_v2-train.pth). See [README](./README.md) to get links for other released models.
 
-# In[3]:
-
-
-# In[4]:
-
-
 cfg.init.model = "models/os2d_v2-train.pth"
 net, box_coder, criterion, img_normalization, optimizer_state = build_os2d_from_config(cfg)
 
 
 # Get the image where to detect and two class images.
-
-# In[5]:
 
 data_dir = "data/mydemo"
 input_image = read_image(f"{data_dir}/input_image.jpg")

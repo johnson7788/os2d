@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 *.pth
 *.log
+*.tar
 output/
 data/grozi
 data/dairy
