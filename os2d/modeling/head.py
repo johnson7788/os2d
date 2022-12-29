@@ -79,17 +79,17 @@ class Os2dAlignment(nn.Module):
 
 
     def prepare_transform_parameters_for_grid_sampler(self, transform_parameters):
-        """Function to standardize the affine transformation models:
-         - either full of simplified transformation based on self self.model_type (defined in self.__init__)
+        """标准化仿射变换模型的功能:
+         - 要么全基于简化改造 self self.model_type (defined in self.__init__)
          - use invertion or not based on self.use_inverse_geom_model (defined in self.__init__)
-        Prepares transform parameters to be used with apply_affine_transform_to_grid
+        准备与 apply_affine_transform_to_grid 一起使用的变换参数
         Args:
-            transform_parameters (Tensor[float], size = batch_size x num_params x h^A x w^A) - contains the transformation parameters for each image-class pair and for each spatial location in the image
-            Here the batch size equals the product of the image batch size b^A and class batch size b^C
-            The number of parameters num_params equals 6 for the full affine transform, and 4 for the simlified version (translation and scaling only)
+            transform_parameters (Tensor[float], size = batch_size x num_params x h^A x w^A) - 包含每个图像类对和图像中每个空间位置的变换参数
+            这里的批次大小等于图像批次大小 b^A 和类批次大小 b^C 的乘积
+            参数 num_params 的数量对于完整仿射变换等于 6，对于简化版本等于 4（仅限平移和缩放）
 
         Returns:
-             transform_parameters (Tensor[float], size = (batch_size * h^A * w^A) x 2, 3) - contains the tranformation parameters prepared for apply_affine_transform_to_grid
+             transform_parameters (Tensor[float], size = (batch_size * h^A * w^A) x 2, 3) - 包含为 apply_affine_transform_to_grid 准备的转换参数
         """
         num_params = transform_parameters.size(1)
         transform_parameters = transform_parameters.transpose(0, 1)  # num_params x batch_size x image_height x image_width
@@ -124,7 +124,7 @@ class Os2dAlignment(nn.Module):
 
             def robust_inverse(batchedTensor):
                 try:
-                    inv = torch.inverse(batchedTensor)
+                    inv = torch.inverse(batchedTensor)   #求逆矩阵, batchedTensor: [4800,3,3]
                 except:
                     n = batchedTensor.size(1)
                     batchedTensor_reg = batchedTensor.clone().contiguous()
@@ -150,7 +150,7 @@ class Os2dAlignment(nn.Module):
             transform_parameters = inverted[:,:2,:]
             transform_parameters = transform_parameters.contiguous()
 
-        return transform_parameters
+        return transform_parameters  #eg: [4800,3,3]
 
     def forward(self, corr_maps):
         """
@@ -171,23 +171,23 @@ class Os2dAlignment(nn.Module):
         fm_width = corr_maps.size(-1)
         assert corr_maps.size(1) == self.input_feature_dim, "The dimension 1 of corr_maps={0} should be equal to self.input_feature_dim={1}".format(corr_maps.size(1), self.input_feature_dim)
 
-        # apply the feature regression network (initial ReLU + normalization is inside)
+        # 应用特征回归网络 (initial ReLU + normalization is inside), [1,6,60,80]
         transform_parameters = self.parameter_regressor(corr_maps)  # batch_size x num_params x image_height x image_width
 
-        # process transform parameters (convert the full affine and invert if needed)
+        # 处理变换参数（转换完整的仿射并在需要时求逆）
         transform_parameters = self.prepare_transform_parameters_for_grid_sampler(transform_parameters)
 
-        # compute the positions of the grid points under the transformations
+        # 计算变换下网格点的位置
         # this is an analogue of AffineGridGenV2 from
         # https://github.com/ignacio-rocco/weakalign/blob/dd0892af1e05df1765f8a729644a33ed75ee657e/geotnf/transformation.py
-        # Note that it is important to have non-default align_corners=True, otherwise the results differ
+        # 请注意，重要的是要有非默认的 align_corners=True，否则结果会有所不同, resampling_grids_local_coord: [4800,15,15,2]
         resampling_grids_local_coord = F.affine_grid(transform_parameters, torch.Size((transform_parameters.size(0), 1, self.out_grid_size.h, self.out_grid_size.w)), align_corners=True)
         # size takes batch_size, num_channels (ignored), grid height, grid width; both height and width are in the range [-1, 1]
-        # coordinates are in the local box coordinate system
+        # 坐标在局部框坐标系中
 
-        # CAUTION! now we have all the points in the local to each spatial location coordinate system
+        # 警告！现在我们拥有每个空间位置坐标系中的所有点
         assert resampling_grids_local_coord.ndimension() == 4 and resampling_grids_local_coord.size(-1) == 2 and resampling_grids_local_coord.size(-2) == self.out_grid_size.w and resampling_grids_local_coord.size(-3) == self.out_grid_size.h, "resampling_grids_local_coord should be of size batch_size x out_grid_width x out_grid_height x 2, but have {0}".format(resampling_grids_local_coord.size())
-
+        # [1,60,80,15,15,2],[batch_size, 特征图高，特征图宽，输出网格高，输出网格宽，2]
         resampling_grids_local_coord = resampling_grids_local_coord.view(batch_size, fm_height, fm_width, self.out_grid_size.h, self.out_grid_size.w, 2)
 
         return resampling_grids_local_coord
@@ -338,7 +338,7 @@ class Os2dHead(nn.Module):
         # L2-normalize the feature map
         feature_maps = normalize_feature_map_L2(feature_maps, 1e-5)
 
-        # 获得所有相关性， 矩阵运算，得到结果[1,1,15,15,60,80]
+        # 根据类别特征图和查询特征图，获得所有它们之间的相关性， 矩阵运算，得到结果[1,1,15,15,60,80]
         corr_maps = torch.einsum( "bfhw,afxy->abwhxy", self.class_feature_maps, feature_maps )
         # need to try to optimize this with opt_einsum: https://optimized-einsum.readthedocs.io/en/latest/
         # CAUTION: note the switch of dimensions hw to wh. This is done for compatability with the FeatureCorrelation class by Ignacio Rocco https://github.com/ignacio-rocco/ncnet/blob/master/lib/model.py (to be able to load their models)
@@ -349,15 +349,16 @@ class Os2dHead(nn.Module):
                                                 image_fm_size.h,
                                                 image_fm_size.w)
 
-        # 计算网格以重新采样相关映射
+        # 计算网格以重新采样相关映射, [1,60,80,15,15,2],[batch_size, 特征图高，特征图宽，输出网格高，输出网格宽，2]
         resampling_grids_local_coord = self.aligner(corr_maps)
 
-        # build classifications outputs
+        # 根据相关性图，构建分类输出，[1,1,225,60,80],[批次，类别批次，回归特征维度，特征图高，特征图宽]
         cor_maps_for_recognition = corr_maps.contiguous().view(batch_size,
                                                        self.class_batch_size,
                                                        feature_dim_for_regression,
                                                        image_fm_size.h,
                                                        image_fm_size.w)
+        # 拆分出类别批次, [批次，类别批次, 特征图高，特征图宽，输出网格高，输出网格宽，2], [1,1,60,80,15,15,2]
         resampling_grids_local_coord = resampling_grids_local_coord.contiguous().view(batch_size,
                                                                                       self.class_batch_size,
                                                                                       image_fm_size.h,
@@ -365,31 +366,30 @@ class Os2dHead(nn.Module):
                                                                                       self.aligner.out_grid_size.h,
                                                                                       self.aligner.out_grid_size.w,
                                                                                       2)
-
-        # need to recompute resampling_grids to [-1, 1] coordinates w.r.t. the feature maps to sample points with F.grid_sample
-        # first get the list of boxes that corresponds to the receptive fields of the parameter regression network: box sizes are the receptive field sizes, stride is the network stride
+        # 需要重新计算 resampling_grids 到 [-1, 1] 坐标 w.r.t.使用 F.grid_sample 将特征映射到样本点
+        # 首先得到参数回归网络的感受野对应的box列表：box sizes为感受野大小，stride为网络步长, default_boxes_xyxy_wrt_fm:[4800,4]
         default_boxes_xyxy_wrt_fm = self.box_grid_generator_feature_map_level.create_strided_boxes_columnfirst(fm_size=image_fm_size)
-
+        # default_boxes_xyxy_wrt_fm: [1,1,60,80,4]
         default_boxes_xyxy_wrt_fm = default_boxes_xyxy_wrt_fm.view(1, 1, image_fm_size.h, image_fm_size.w, 4)
-        # 1 (to broadcast to batch_size) x 1 (to broadcast to class batch_size) x  box_grid_height x box_grid_width x 4
+        # 形状意义： 1 (to broadcast to batch_size) x 1 (to broadcast to class batch_size) x  box_grid_height x box_grid_width x 4
         default_boxes_xyxy_wrt_fm = default_boxes_xyxy_wrt_fm.to(resampling_grids_local_coord.device)
         resampling_grids_fm_coord = convert_box_coordinates_local_to_global(resampling_grids_local_coord, default_boxes_xyxy_wrt_fm)
 
-        # covert to coordinates normalized to [-1, 1] (to be compatible with torch.nn.functional.grid_sample)
+        # covert to coordinates normalized to [-1, 1] (to be compatible with torch.nn.functional.grid_sample), 取最后一维度，取x的坐标，resampling_grids_fm_coord_x:[1,1,60,80,15,15,1]
         resampling_grids_fm_coord_x = resampling_grids_fm_coord.narrow(-1,0,1)
-        resampling_grids_fm_coord_y = resampling_grids_fm_coord.narrow(-1,1,1)
+        resampling_grids_fm_coord_y = resampling_grids_fm_coord.narrow(-1,1,1)    # 取最后一维度，取y的坐标，resampling_grids_fm_coord_x:[1,1,60,80,15,15,1]
+        # resampling_grids_fm_coord_unit: [1,1,60,80,15,15,2], 归一化一下?
         resampling_grids_fm_coord_unit = torch.cat( [resampling_grids_fm_coord_x / (image_fm_size.w - 1) * 2 - 1,
             resampling_grids_fm_coord_y / (image_fm_size.h - 1) * 2 - 1], dim=-1 )
-        # clamp to fit the image plane
+        # 裁剪以适合图像平面, 值在-1到1之间
         resampling_grids_fm_coord_unit = resampling_grids_fm_coord_unit.clamp(-1, 1)
-
         # extract and pool matches
         # # slower code:
         # output_recognition = self.resample_of_correlation_map_simple(cor_maps_for_recognition,
         #                                                          resampling_grids_fm_coord_unit,
         #                                                          self.class_pool_mask)
 
-        # we use faster, but somewhat more obscure version
+        # 我们使用更快但更晦涩的版本
         output_recognition = self.resample_of_correlation_map_fast(cor_maps_for_recognition,
                                                              resampling_grids_fm_coord_unit,
                                                              self.class_pool_mask)
@@ -437,24 +437,24 @@ class Os2dHead(nn.Module):
 
     @staticmethod
     def resample_of_correlation_map_fast(corr_maps, resampling_grids_grid_coord, class_pool_mask):
-        """This function resamples the correlation tensor according to the grids of points representing the transformations produces by the transformation network.
-        This is a more efficient version of resample_of_correlation_map_simple
+        """该函数根据表示转换网络产生的转换的点网格对相关张量进行重新采样。
+        这是 resample_of_correlation_map_simple 的更高效版本
         Args:
             corr_maps (Tensor[float], size=batch_size x class_batch_size x (h^T*w^T) x h^A x w^A):
-                This tensor contains correlations between of features of the input and class feature maps.
-                This function resamples this tensor.
+                该张量包含输入特征与类别特征图之间的相关性。
+                此函数重新采样此张量。
                 CAUTION: this tensor shows be viewed to batch_size x class_batch_size x w^T x h^T x h^A x w^A (note the switch of w^T and h^T dimensions)
-                This happens to be able to load models of the weakalign repo
+                这恰好能够加载 weakalign repo 的模型
             resampling_grids_grid_coord (Tensor[float], size=batch_size x class_batch_size x h^A x w^A x h^T x w^T x 2):
-                This tensor contains non-integer coordinates of the points that show where we need to resample
+                该张量包含显示我们需要重新采样的位置的点的非整数坐标
             class_pool_mask (Tensor[float]): size=class_batch_size x 1 x h^T x w^T
-                This tensor contains the mask, by which the resampled correlations are multiplied before final average pooling.
-                It masks out the border features of the class feature maps.
+                该张量包含mask，在最终平均池化之前将重采样的相关性乘以该mask。
+                它掩盖了类特征图的边界特征。
 
         Returns:
             matches_pooled (Tensor[float]): size=batch_size x class_batch_size x x 1 x h^A x w^A
 
-        Time comparison resample_of_correlation_map_simple vs resample_of_correlation_map_fast:
+        时间比较: resample_of_correlation_map_simple 与 resample_of_correlation_map_fast：
             for 2 images, 11 labels, train_patch_width 400, train_patch_height 600 (fm width = 25, fm height = 38)
                 CPU time simple: 0.14s
                 CPU time fast: 0.11s
@@ -462,20 +462,19 @@ class Os2dHead(nn.Module):
                 GPU time simple: 0.010s
                 GPU time fast: 0.006s
         """
+        # resampling_grids_grid_coord: [1,1,60,80,15,15,2], image_fm_size:FeatureMapSize(w=80, h=60),  template_fm_size: FeatureMapSize(w=15, h=15), corr_maps:[1,1,225,60,60], class_pool_mask:[1,1,15,15]
         batch_size = corr_maps.size(0)
         class_batch_size = corr_maps.size(1)
         template_fm_size = FeatureMapSize(h=resampling_grids_grid_coord.size(-3), w=resampling_grids_grid_coord.size(-2))
         image_fm_size = FeatureMapSize(img=corr_maps)
         assert template_fm_size.w * template_fm_size.h == corr_maps.size(2), 'the number of channels in the correlation map = {0} should match the size of the resampling grid = {1}'.format(corr_maps.size(2), template_fm_size)
 
-        # memory efficient computation will be done by merging the Y coordinate
-        # and the index of the channel in corr_map into one single float
-
-        # merge the two dimensions together
+        # 内存高效计算将通过将 corr_map 中的 Y 坐标和通道索引合并为一个浮点数来完成
+        # 将两个维度合并在一起, corr_map_merged_y_and_id_in_corr_map: [1,1,13500,80]
         corr_map_merged_y_and_id_in_corr_map = corr_maps.contiguous().view(batch_size * class_batch_size,
             1, -1, image_fm_size.w)
 
-        # note the weird order of coordinates - related to the transposed coordinates in the Ignacio's network
+        # 注意坐标的奇怪顺序 - 与 Ignacio 网络中的转置坐标有关
         y_grid, x_grid = torch.meshgrid( torch.arange(template_fm_size.h), torch.arange(template_fm_size.w) )
         index_in_corr_map = y_grid + x_grid * template_fm_size.h
 

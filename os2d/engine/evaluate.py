@@ -342,7 +342,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
         # loc_scores, class_scores: pyramid_level x class_batch x image_in_batch x
         for i_image_in_batch, image_id in enumerate(batch_ids):
-            # get scores from all pyramid levels
+            # 从所有金字塔级别获得分数
             image_loc_scores_p, image_class_scores_p, image_fm_sizes_p = [], [], []
             transform_corners_p = []
             for i_p in range(num_pyramid_levels):
@@ -351,7 +351,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
                 else:
                     image_loc_scores_p.append(None)
                 image_class_scores_p.append(torch.cat([s[i_image_in_batch] for s in class_scores[i_p]], 0))
-
+                # transform_corners_p list: 元素: [185,8,4800]
                 if transform_corners is not None and transform_corners[0] is not None and transform_corners[0][0] is not None:
                     transform_corners_p.append(torch.cat([s[i_image_in_batch] for s in transform_corners[i_p]], 0))
                 else:

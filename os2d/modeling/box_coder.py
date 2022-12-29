@@ -15,7 +15,7 @@ BOX_ENCODING_WEIGHTS = torch.tensor([10, 10, 5, 5])
 
 @lru_cache()
 def create_strided_boxes_columnfirst(grid_size, box_size, box_stride):
-    """Create a list of boxes, shifted horizontally and vertically with some stride. The boxes are appearinf in the column-first (vertical shift first) order starting from the top left. The boxes are in the x1y1x2y2 format.
+    """创建一个框列表，水平和垂直移动一些步长。 The boxes are appear inf in the column-first (vertical shift first) order starting from the top left. The boxes are in the x1y1x2y2 format.
   
     Args:
       grid_size: (tuple of len 2) height and width of the grid, the number of boxes equals grid_size.w * grid_size.h
@@ -44,20 +44,20 @@ def create_strided_boxes_columnfirst(grid_size, box_size, box_stride):
     w = torch.arange(0, grid_size.w, dtype=torch.float)
     cx = (w + 0.5) * box_stride.w
 
-    # make tuples of coordinates
+    # 制作坐标元组
     cx = cx.unsqueeze(0).expand(cy.size(0), -1).contiguous()
     cy = cy.unsqueeze(1).expand(-1, cx.size(1)).contiguous()
     cx = cx.view(-1)
     cy = cy.view(-1)
 
-    # create sizes of appropriate length
+    # 创建适当长度的尺寸
     sx = torch.FloatTensor( [box_size.w] ).expand_as(cx)
     sy = torch.FloatTensor( [box_size.h] ).expand_as(cy)
 
     boxes_cXcYWH = torch.stack( [cx, cy, sx, sy], dim=1 )
 
     boxes_xyxy = BoxList.convert_bbox_format(boxes_cXcYWH, "cx_cy_w_h", "xyxy")
-    return boxes_xyxy
+    return boxes_xyxy   #eg:[4800,4]
 
 
 class BoxGridGenerator:
