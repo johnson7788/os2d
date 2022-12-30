@@ -57,7 +57,7 @@ def init_logger(cfg, config_file):
     # save config file only when training (to run multiple evaluations in the same folder)
     if output_dir and cfg.train.do_training:
         output_config_path = os.path.join(output_dir, "config.yml")
-        logger.info("Saving config into: {}".format(output_config_path))
+        logger.info("保存训练的配置文件到: {}".format(output_config_path))
         # save overloaded model config in the output directory
         save_config(cfg, output_config_path)
 

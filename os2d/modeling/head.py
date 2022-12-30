@@ -212,7 +212,7 @@ class Os2dHeadCreator(nn.Module):
         super(Os2dHeadCreator, self).__init__()
         # 创建对齐模块
         self.aligner = aligner
-        # feature_map_receptive_field 和 feature_map_stride： FeatureMapSize(w=16, h=16)， rec_field：感受野大小和步长
+        # feature_map_receptive_field 和 feature_map_stride： FeatureMapSize(w=16, h=16)， rec_field：感受野大小和步长, 宽和高的感受野和步长的计算
         rec_field, stride = self.get_rec_field_and_stride_after_concat_nets(feature_map_receptive_field, feature_map_stride,
                                                                              self.aligner.network_receptive_field, self.aligner.network_stride)
         self.box_grid_generator_image_level = BoxGridGenerator(box_size=rec_field, box_stride=stride)
@@ -601,7 +601,7 @@ def normalize_feature_map_L2(feature_maps, epsilon=1e-6):
 
 
 class TransformationNet(nn.Module):
-    """This class is implemented on top of the FeatureRegression class form the weakalign repo
+    """这个类是在 FeatureRegression 类之上实现的，形成了 weakalign repo
     https://github.com/ignacio-rocco/weakalign/blob/master/model/cnn_geometric_model.py
     """
     def __init__(self, output_dim=6, use_cuda=True, normalization='batchnorm', kernel_sizes=[7,5], channels=[128,64], input_feature_dim=15*15, num_groups=16):

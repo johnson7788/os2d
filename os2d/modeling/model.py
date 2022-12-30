@@ -47,8 +47,8 @@ def build_os2d_from_config(cfg):
                               localization_weight=cfg.train.objective.loc_weight,
                               neg_to_pos_ratio=cfg.train.objective.neg_to_pos_ratio,
                               rll_neg_weight_ratio=cfg.train.objective.rll_neg_weight_ratio)
+    # 加载或初始化优化器状态， eg: optimizer_state: None
     optimizer_state = net.init_model_from_file(cfg.init.model, init_affine_transform_path=cfg.init.transform)
-
     num_params, num_param_groups = count_model_parameters(net)
     logger.info("OS2D模型有 {0} 个blocks，一共有 {1} 个参数parameters (before freezing)".format(num_param_groups, num_params))
 
@@ -121,7 +121,7 @@ def get_feature_map_size_for_network(img_size, net, is_cuda=False):
 
 
 class Os2dModel(nn.Module):
-    """The main class implementing the OS2D model.
+    """实现 OS2D 模型的主类。
     """
     default_normalization = {}
     default_normalization["mean"] = (0.485, 0.456, 0.406)
@@ -156,7 +156,7 @@ class Os2dModel(nn.Module):
 
         self.net_label_features = LabelFeatureExtractor(feature_extractor=extractor)
         # 默认情况下，将网络设置为评估模式，否则，当使用假图像来寻找特征图的大小时，wise batchnorm 被搞砸。
-        # set the net to the eval mode by default, other wise batchnorm statistics get screwed when using dummy images to find feature map sizes
+        #
         self.eval()
 
         # decide GPU usage

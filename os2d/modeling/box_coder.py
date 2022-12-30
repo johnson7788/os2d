@@ -61,7 +61,7 @@ def create_strided_boxes_columnfirst(grid_size, box_size, box_stride):
 
 
 class BoxGridGenerator:
-    """该类允许专门调用 create_strided_boxes_column， first to the specific network stride and box sizes
+    """该类允许专门调用 create_strided_boxes_column，首先是特定的网络步长和框大小
     """
     def __init__(self, box_size, box_stride):
         """
@@ -174,15 +174,15 @@ class Os2dBoxCoder:
                        remap_classification_targets_iou_pos, remap_classification_targets_iou_neg,
                        output_box_grid_generator, function_get_feature_map_size,
                        do_nms_across_classes=False):
-        self.get_feature_map_size = function_get_feature_map_size
-        self.output_box_grid_generator = output_box_grid_generator
-        self.positive_iou_threshold = positive_iou_threshold
-        self.negative_iou_threshold = negative_iou_threshold
-        self.remap_classification_targets_iou_pos = remap_classification_targets_iou_pos
-        self.remap_classification_targets_iou_neg = remap_classification_targets_iou_neg
+        self.get_feature_map_size = function_get_feature_map_size  #获取特征图大小的函数
+        self.output_box_grid_generator = output_box_grid_generator  #输出box的感受野大小和滑动步长
+        self.positive_iou_threshold = positive_iou_threshold   # 正样本的IOU阈值，0.5
+        self.negative_iou_threshold = negative_iou_threshold    #0.1
+        self.remap_classification_targets_iou_pos = remap_classification_targets_iou_pos  #0.8
+        self.remap_classification_targets_iou_neg = remap_classification_targets_iou_neg  #0.4
         self.do_nms_across_classes = do_nms_across_classes
 
-        self.weights = BOX_ENCODING_WEIGHTS
+        self.weights = BOX_ENCODING_WEIGHTS   #tensor([10, 10,  5,  5])
         self.box_coder = BoxCoder(self.weights)
         self.matcher = Matcher(self.positive_iou_threshold,
                                self.negative_iou_threshold)

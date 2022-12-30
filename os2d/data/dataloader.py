@@ -107,12 +107,12 @@ def build_train_dataloader_from_config(cfg, box_coder, img_normalization,
                                               no_image_reading=not cfg.train.do_training)
 
     logger = logging.getLogger(logger_prefix+".dataloader")
-    # create training dataloader
+    #随机裁剪大小
     random_crop_size = FeatureMapSize(w=cfg.train.augment.train_patch_width,
                                       h=cfg.train.augment.train_patch_height)
     evaluation_scale = dataset_train.eval_scale / dataset_train.image_size   #eg: 0.392
-
-    pyramid_scales_eval = cfg.eval.scales_of_image_pyramid     #eg: [1.0]
+    #特征金字塔的缩放率
+    pyramid_scales_eval = cfg.eval.scales_of_image_pyramid     #eg: [1.0]， eg: [0.5, 0.625, 0.8, 1, 1.2, 1.4, 1.6]
     pyramid_scales_eval = [p * evaluation_scale for p in pyramid_scales_eval]  #eg: [0.39215686274509803]
 
     dataloader_train = DataloaderOneShotDetection(dataset=dataset_train,
@@ -189,15 +189,15 @@ class DataloaderOneShotDetection():
         else:
             self.data_augmentation = None
             self.use_buckets = True
-
+        # eg: 4
         self.batch_size = batch_size
-        self.max_batch_labels = class_batch_size
+        self.max_batch_labels = class_batch_size  #eg: 15
         
         if self.dataset.have_images_read:
-            # setup batching by creating buckets of image with the same size 
+            # 通过创建具有相同大小的图像桶来设置批次
             self._create_buckets(merge_one_bucket=not self.use_buckets)
 
-            # mine all gt images from all the groundtruth boxes
+            # 从所有 groundtruth boxes 中挖掘所有 gt 图像
             if self.mine_extra_class_images:
                 self._mine_extra_class_images()
 
@@ -229,14 +229,14 @@ class DataloaderOneShotDetection():
                         self.label_image_collection[label].append(img_cropped)
 
     def _create_buckets(self, merge_one_bucket=False):
-        # organize images in buckets according to image size: in one batch we can only see images from the same bucket
+        # 根据图像大小在桶中组织图像：在一批中我们只能看到来自同一个桶的图像
         if not merge_one_bucket:
             self.buckets = self.dataset.split_images_into_buckets_by_size()
         else:
-            # put all the image in one bucket
+            # 将所有图像放在一个桶中
             self.buckets = [list(self.dataset.image_size_per_image_id.keys())]  # copy all the image_ids - those are ints
 
-        # collect info about buckets
+        # 收集有关桶的信息
         self.num_buckets = len(self.buckets)
         self.bucket_sizes = [len(b) for b in self.buckets]
         self.num_batches_per_bucket = [math.ceil(bucket_size / self.batch_size) for bucket_size in self.bucket_sizes]

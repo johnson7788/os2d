@@ -107,7 +107,7 @@ def _resnet_fe(resnet, level, use_group_norm, feature_map_stride, feature_map_re
 
 def resnet50_c4(use_group_norm=False):
     """
-    Constructs the ResNet50 C4 feature extractor (R-50-C4 in maskrcnn-benchmark)
+    构建 ResNet50 C4 特征提取器（maskrcnn-benchmark 中的 R-50-C4）
     Args:
         use_group_norm (bool) - if True use torch.nn.GroupNorm with GROUPNORM_NUMGROUPS groups as normalization layers,
             otherwise use torch.nn.BatchNorm2d

@@ -80,7 +80,7 @@ def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_imag
     annotation_folder="classes"
     image_size = 3264
     classdatafile = os.path.join(data_path, "grozi", annotation_folder,"grozi.csv")
-    gt_path = os.path.join(data_path, "grozi", annotation_folder, "images")
+    gt_path = os.path.join(data_path, "grozi", annotation_folder, "images")  #类别图片
     image_path = os.path.join(data_path, "grozi", "src", str(image_size))
     gtboxframe = read_annotation_file(classdatafile)
 
@@ -563,9 +563,9 @@ class DatasetOneShotDetection(data.Dataset):
                        image_ids=None, image_file_names=None, logger_prefix="OS2D"):
         self.logger = logging.getLogger(f"{logger_prefix}.dataset")
         self.name = name  #eg: 'grozi-train'
-        self.image_size = image_size   # eg: 图片的个数，3264
-        self.eval_scale = eval_scale   # 评估图片的数量？
-        self.cache_images = cache_images   # 缓存图片？
+        self.image_size = image_size   #
+        self.eval_scale = eval_scale   # 评估图片的数量
+        self.cache_images = cache_images   # 缓存图片
 
         self.gtboxframe = gtboxframe    #groundtruth box 的位置信息
         required_columns = {"imageid", "imagefilename", "classid", "classfilename", "gtbboxid", "difficult", "lx", "ty", "rx", "by"}
@@ -584,7 +584,7 @@ class DatasetOneShotDetection(data.Dataset):
             self.image_file_names = list(unique_images["imagefilename"])
 
         if not no_image_reading:
-            # read GT images
+            # read GT images， 读取类别图像
             self._read_dataset_gt_images()
             # read data images
             self._read_dataset_images()
@@ -640,9 +640,9 @@ class DatasetOneShotDetection(data.Dataset):
                 gt_file = row["classfilename"]
                 class_id = row["classid"]
                 if class_id not in self.gt_images_per_classid:
-                    # if the GT image is not read save it to the dataset
+                    # 如果未读取 GT 图像，则将其保存到数据集中
                     self.gt_images_per_classid[class_id] = read_image(os.path.join(self.gt_path, gt_file))
-            self.logger.info("Read {0} GT images".format(len(self.gt_images_per_classid)))
+            self.logger.info("读取了 {0} 张类别图像".format(len(self.gt_images_per_classid)))
         else:
             self.logger.info("GT images are not provided")
 

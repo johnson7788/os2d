@@ -29,7 +29,7 @@ class DataAugmentation():
         self.scale_jitter = scale_jitter
         self.jitter_aspect_ratio = jitter_aspect_ratio
 
-        # random crop parameters
+        #随机裁剪 parameters
         self.do_random_crop = True if random_crop_size is not None else False
         if self.do_random_crop:
             self.random_crop_size = random_crop_size

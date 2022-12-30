@@ -31,7 +31,7 @@ class Os2dObjective(nn.Module):
         """
         super(Os2dObjective, self).__init__()
         self.neg_to_pos_ratio = neg_to_pos_ratio
-        self.class_loss = class_loss
+        self.class_loss = class_loss   #'RLL'
         self.margin = margin
         self.margin_pos = margin_pos
         self.localization_weight = localization_weight
