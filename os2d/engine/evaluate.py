@@ -116,7 +116,7 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
                                                 transform_corners_pyramid=transform_corners_pyramid)
 
         boxes.append(boxes_one_image.cpu())
-        
+        # 显示从查询图检测到的目标bbox
         if cfg.visualization.eval.show_detections:
             visualizer.show_detection_from_dataloader(boxes_one_image, image_id, dataloader, cfg.visualization.eval, class_ids=None)
         
@@ -194,7 +194,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
         class_image_augmentation (str) - 要进行的类图像增强类型, default - no augmentation, support "rotation90" and "horflip"
 
     Returns:
-        Creates an iterator over tuples of data:
+        在数据元组上创建一个迭代器：
         image_id (int)
         image_loc_scores_p (list of tensors) - localization scores to get bounding boxes when decoding
             len(image_loc_scores_p) = num pyramid levels, tensor size: num_labels x 4 x num_anchors
@@ -221,11 +221,11 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
     assert len(class_ids) == num_classes
     query_img_sizes = [FeatureMapSize(img=img) for img in class_images]
     
-    # the current code works only with class batch == 1, this in inefficient in some place, but good in others
+    # 当前代码仅适用于 class batch == 1，这在某些地方效率低下，但在其他地方很好
     # is there a better way?
     class_batch_size = 1
 
-    # extract all class convolutions from batched class images
+    # 从批次的类图像中提取所有类卷积
     class_conv_layer_batched = []
     logger.info("提取权重从 {0} 个类别中，{1}".format(num_classes,
         f" with {class_image_augmentation} augmentation" if class_image_augmentation else ""))
@@ -273,23 +273,23 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
             class_conv_layer = net.os2d_head_creator.create_os2d_head(class_feature_maps)
             class_conv_layer_batched.append(class_conv_layer)
     
-    # loop over all images
+    # 遍历所有图像
     iterator_batches = dataloader.make_iterator_for_all_images(image_batch_size, num_random_pyramid_scales=num_random_pyramid_scales)
     for batch_ids, pyramids_batch, box_transforms_batch, initial_img_size_batch in iterator_batches:
+        # batch_ids: 批次id, [6], pyramids_batch: list，这个批次的特征金字塔, box_transforms_batch:bbox框信息，initial_img_size_batch:list，初始特征图尺寸 [FeatureMapSize(w=3264, h=2448)]
         t_start_batch = time.time()
         # 选择要用于此批次搜索的标签
         if num_random_negative_labels >= 0 :
-            # randomly shuffle labels
-            neg_labels = torch.randperm(len(class_conv_layer_batched))
+            neg_labels = torch.randperm(len(class_conv_layer_batched)) #随机打乱标签
             neg_labels = neg_labels[:num_random_negative_labels]
             # add positive labels
             pos_labels = dataloader.get_class_ids_for_image_ids(batch_ids)
             pos_labels = dataloader.convert_label_ids_global_to_local(pos_labels, class_ids)
             batch_labels_local = torch.cat([neg_labels, pos_labels], 0).unique()
         else:
-            # take all the labels - needed for evaluation
+            # take all the labels - needed for evaluation， batch_labels_local：list, [185]
             batch_labels_local = torch.arange(len(class_conv_layer_batched))
-        # 这个批次中的每个类别的id
+        # 这个批次中的每个类别的id, batch_class_ids: [185], 真实的标签id
         batch_class_ids = [class_ids[l // num_class_views] for l in batch_labels_local]
         # 批次中所有查询图像的特征图尺寸
         batch_query_img_sizes = [query_img_sizes[l // num_class_views] for l in batch_labels_local]
@@ -306,9 +306,9 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
         for batch_images in pyramids_batch:
             if is_cuda:
                 batch_images = batch_images.cuda()
-            # batch_images： [1,3,960,1280], 原始图片特征
+            # batch_images： [1,3,960,1280], 原始图片特征， 这里是每张图片，1代表1张图片
             t_start_features = time.time()
-            feature_maps = net.net_feature_maps(batch_images)   #resnet提取后的特征, [1,1024,60,80]
+            feature_maps = net.net_feature_maps(batch_images)   #resnet提取后的特征, [1,1024,60,80]，每个特征金字塔
             torch.cuda.synchronize()
             t_cum_features += time.time() - t_start_features
 
@@ -338,7 +338,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
             batch_images_pyramid.append(batch_images)
 
-        timing_str = "Feature time: {0}, Label time: {1}, ".format(time_for_printing(t_cum_features, mode="s"),
+        timing_str = "提取特征耗时: {0}, 标签判断耗时: {1}, ".format(time_for_printing(t_cum_features, mode="s"),
                                                           time_for_printing(t_cum_labels, mode="s"))
 
         # loc_scores, class_scores: pyramid_level x class_batch x image_in_batch x
@@ -360,12 +360,20 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
                 image_fm_sizes_p.append(fm_sizes[i_p][0])
 
-            # 得到一个图像的金字塔  [i_p], list, [3,960,1280]
+            # 得到一个图像的金字塔  [i_p], list, eg: 7* [3,960,1280], 7种类型特征金字塔
             one_image_pyramid = [p[i_image_in_batch] for p in batch_images_pyramid]
 
             # 提取box变换
             box_reverse_transforms = box_transforms_batch[i_image_in_batch]
 
-            logger.info(timing_str + "Net time: {0}".format(time_since(t_start_batch)))
+            logger.info(timing_str + "整个网络耗时: {0}".format(time_since(t_start_batch)))
+            # image_id: 6, image_loc_scores_p:list, 7([185,4,1200|1900|3072|...|12288]),  这张图片的id
+            # image_class_scores_p:list, 7*(185,1200|1900|3072|...|12288])   #7个特征金字塔中，bbox的分类分数
+            # one_image_pyramid: list, 7*[(3,480,640),(3,600,800),...(3,1536,2048) # 7个特征金字塔的大小
+            # batch_query_img_sizes: 185 eg: (FeatureMapSize(w=216, h=265)...FeatureMapSize(w=178, h=322)) 每个类别的特征图尺寸
+            # batch_class_ids: list 185, 每个列表的id
+            # box_reverse_transforms: 7* (每个特征金字塔的感受野）
+            # image_fm_sizes_p: 每个特征金字塔特征图大小
+            # transform_corners_p： 7* ([185,8,1200|1900|3072|...|12288])
             yield image_id, image_loc_scores_p, image_class_scores_p, one_image_pyramid,\
                   batch_query_img_sizes, batch_class_ids, box_reverse_transforms, image_fm_sizes_p, transform_corners_p

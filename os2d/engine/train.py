@@ -419,10 +419,10 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
     if cfg.train.optim.max_iter > 0 and cfg.train.do_training:
         logger.info("开始训练")
 
-        # setup the learning rate schedule
+        # 设置学习率计划
         _, anneal_lr_func = setup_lr(optimizer, full_log, cfg.train.optim.anneal_lr, cfg.eval.iter)
 
-        # evaluate the initial model
+        # 评估初始模型
         meters_eval = evaluate_model(dataloaders_eval, net, cfg, criterion)
         
         if cfg.output.best_model.do_get_best_model:
@@ -475,7 +475,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
                 dataloader_train.set_hard_negative_data(hardnegdata_per_imageid)
             
             # print iter info
-            logger.info(f"Iter {i_iter} ({cfg.train.optim.max_iter}), epoch {i_epoch}, time {time_since(t_start)}")
+            logger.info(f"迭代了 {i_iter} ({cfg.train.optim.max_iter}), epoch {i_epoch}, time {time_since(t_start)}")
 
             # get data for training
             t_start_loading = time.time()

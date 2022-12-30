@@ -81,7 +81,7 @@ class LabelFeatureExtractor(nn.Module):
         list_of_feature_maps = []
 
         for class_image in class_image_list:
-            # extract features from images
+            # 从图像中提取特征
             class_feature_maps = self.net_class_features(class_image.unsqueeze(0))
             list_of_feature_maps.append(class_feature_maps)
         
@@ -215,7 +215,7 @@ class Os2dModel(nn.Module):
         class_scores = outputs[1]
         num_labels = class_scores.size(1)
         class_scores_transform_detached = outputs[2]
-        transform_corners = outputs[3]
+        transform_corners = outputs[3]  #转换角?啥意思呢,【1，,1，,8，,30，40】
 
         assert loc_scores.size(-2) == class_scores.size(-2), "Class and loc score should have same spatial sizes, but have {0} and {1}".format(class_scores.size(), loc_scores.size())
         assert loc_scores.size(-1) == class_scores.size(-1), "Class and loc score should have same spatial sizes, but have {0} and {1}".format(class_scores.size(), loc_scores.size())
@@ -230,7 +230,7 @@ class Os2dModel(nn.Module):
         class_scores_transform_detached = class_scores_transform_detached.contiguous().view(num_images, num_labels, -1)
         loc_scores = loc_scores.contiguous().view(num_images, num_labels, 4, -1) if loc_scores is not None else None
         transform_corners = transform_corners.contiguous().view(num_images, num_labels, 8, -1) if transform_corners is not None else None
-
+        # bbox回归：loc_scores: [1,1,4,1200], 分类： class_scores:[1,1,1200], class_scores_transform_detached:[1,1,1200],transform_corners:[1,1,8,1200]
         return loc_scores, class_scores, class_scores_transform_detached, transform_corners
 
     def forward(self, images=None, class_images=None,
@@ -269,7 +269,7 @@ class Os2dModel(nn.Module):
                 class_feature_maps = self.net_label_features(class_images)
                 class_head = self.os2d_head_creator.create_os2d_head(class_feature_maps)
 
-        # process features maps of different pyramid levels
+        # 处理不同金字塔层次的特征图
         loc_scores, class_scores, class_scores_transform_detached, transform_corners = \
             self.apply_class_heads_to_feature_maps(feature_maps, class_head)
 

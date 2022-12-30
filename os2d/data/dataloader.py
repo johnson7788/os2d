@@ -343,7 +343,7 @@ class DataloaderOneShotDetection():
 
         for i_p in range(num_pyramid_levels):
             img_pyramid[i_p] = transforms.Compose(transforms_th)( img_pyramid[i_p] )
-
+        # img_pyramid: 不同尺寸的特征金字塔向量，boxes_pyramid: 每个特征金字塔对应的感受野，
         return img_pyramid, boxes_pyramid, mask_cutoff_boxes, mask_difficult_boxes, pyramid_box_inverse_transform
 
     def _transform_image(self, image_id, boxes=None, do_augmentation=True, hflip=False, vflip=False, mined_data=None):
@@ -419,7 +419,7 @@ class DataloaderOneShotDetection():
     def get_all_class_images(self, do_resize=True):
         class_ids = self.dataset.get_class_ids()
         class_ids = sorted(list(class_ids))
-        class_images, class_image_sizes = self.get_class_images_and_sizes(class_ids, do_augmentation=False)
+        class_images, class_image_sizes = self.get_class_images_and_sizes(class_ids, do_augmentation=False)  #获取PIL图像和图像的特征图大小
         batch_class_images = [self._transform_image_gt(img, do_augmentation=False, do_resize=do_resize) for img in class_images]
 
         # 要具有适当的维度，只需将维度零添加到所有图像
@@ -442,7 +442,7 @@ class DataloaderOneShotDetection():
             
             # batch images
             for batch_start in range(0, size_b, batch_size):
-                self.logger.info("图像批次 {0}中包含的图像个数是 {1}".format(i_batch, num_batches))
+                self.logger.info("图像批次 {0} 中包含的图像个数是 {1}".format(i_batch, num_batches))
                 i_batch += 1
                 batch_ids = ids_b[batch_start : batch_start + batch_size]
 

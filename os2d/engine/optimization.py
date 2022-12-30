@@ -51,7 +51,7 @@ def get_learning_rate(optimizer):
             return p["lr"]
 
 def setup_lr(optimizer, full_log, cfg, eval_iter):
-    # annealing learning rate
+    # 退火学习率
     if cfg.type.lower() == "none":
         lr_scheduler = None
     elif cfg.type.lower() == "MultiStepLR".lower():

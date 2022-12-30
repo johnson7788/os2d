@@ -90,7 +90,7 @@ def main():
                                                        datasets_for_eval=datasets_train_for_eval,
                                                        data_path=data_path)
 
-    # start training (validation is inside)
+    # 开始训练（验证在里面）
     trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_eval=dataloaders_eval)
 
 

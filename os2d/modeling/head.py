@@ -111,7 +111,7 @@ class Os2dAlignment(nn.Module):
         if self.use_inverse_geom_model:
             assert self.model_type in ["affine", "simple_affine"], "Invertion of the transformation is implemented only for the affine transfomations"
             assert transform_parameters.size(-2) == 2 and transform_parameters.size(-1) == 3, "transform_parameters should be of size ? x 2 x 3 to interpret them ass affine matrix, have {0} instead".format(transform_parameters.size())
-            grid_batch_size = transform_parameters.size(0)
+            grid_batch_size = transform_parameters.size(0)  #1200
 
             # # slow code:
             # lower_row = torch.tensor([0,0,1], device=transform_parameters.device, dtype=transform_parameters.dtype)
@@ -150,7 +150,7 @@ class Os2dAlignment(nn.Module):
             transform_parameters = inverted[:,:2,:]
             transform_parameters = transform_parameters.contiguous()
 
-        return transform_parameters  #eg: [4800,3,3]
+        return transform_parameters  #eg: [4800,3,3]， or[1200,2,3]
 
     def forward(self, corr_maps):
         """
@@ -190,7 +190,7 @@ class Os2dAlignment(nn.Module):
         # [1,60,80,15,15,2],[batch_size, 特征图高，特征图宽，输出网格高，输出网格宽，2]
         resampling_grids_local_coord = resampling_grids_local_coord.view(batch_size, fm_height, fm_width, self.out_grid_size.h, self.out_grid_size.w, 2)
 
-        return resampling_grids_local_coord
+        return resampling_grids_local_coord  #eg: [1,225,30,40]
 
 
 def spatial_norm(feature_mask):
@@ -301,7 +301,7 @@ class Os2dHead(nn.Module):
                              pool_border_width : self.class_pool_mask.size(-1) - pool_border_width] = 1
         self.class_pool_mask = spatial_norm(self.class_pool_mask)  #[1,1,15,15]
 
-        # create the alignment module
+        # 创建对齐模块
         self.aligner = aligner
 
 
@@ -335,10 +335,10 @@ class Os2dHead(nn.Module):
         class_feature_dim = self.class_feature_maps.size(1)
         assert feature_dim == class_feature_dim, "Feature dimensionality of input={0} and class={1} feature maps has to equal".format(feature_dim, class_feature_dim)
 
-        # L2-normalize the feature map
+        # L2正则化特征图
         feature_maps = normalize_feature_map_L2(feature_maps, 1e-5)
 
-        # 根据类别特征图和查询特征图，获得所有它们之间的相关性， 矩阵运算，得到结果[1,1,15,15,60,80]
+        # self.class_feature_maps： 【1，1024，15，15】，feature_maps： 【1，,1024，,30，,40】根据类别特征图和查询特征图，获得所有它们之间的相关性， 矩阵运算，得到结果[1,1,15,15,60,80]
         corr_maps = torch.einsum( "bfhw,afxy->abwhxy", self.class_feature_maps, feature_maps )
         # need to try to optimize this with opt_einsum: https://optimized-einsum.readthedocs.io/en/latest/
         # CAUTION: note the switch of dimensions hw to wh. This is done for compatability with the FeatureCorrelation class by Ignacio Rocco https://github.com/ignacio-rocco/ncnet/blob/master/lib/model.py (to be able to load their models)
@@ -367,7 +367,7 @@ class Os2dHead(nn.Module):
                                                                                       self.aligner.out_grid_size.w,
                                                                                       2)
         # 需要重新计算 resampling_grids 到 [-1, 1] 坐标 w.r.t.使用 F.grid_sample 将特征映射到样本点
-        # 首先得到参数回归网络的感受野对应的box列表：box sizes为感受野大小，stride为网络步长, default_boxes_xyxy_wrt_fm:[4800,4]
+        # 首先得到参数回归网络的感受野对应的box列表：box sizes为感受野大小，stride为网络步长, default_boxes_xyxy_wrt_fm:[4800,4], or [1200,4]
         default_boxes_xyxy_wrt_fm = self.box_grid_generator_feature_map_level.create_strided_boxes_columnfirst(fm_size=image_fm_size)
         # default_boxes_xyxy_wrt_fm: [1,1,60,80,4]
         default_boxes_xyxy_wrt_fm = default_boxes_xyxy_wrt_fm.view(1, 1, image_fm_size.h, image_fm_size.w, 4)
@@ -401,7 +401,7 @@ class Os2dHead(nn.Module):
             # Optimization to make eval faster
             output_recognition_transform_detached = output_recognition
 
-        # build localization targets
+        # 构建本地化目标
         default_boxes_xyxy_wrt_image = self.box_grid_generator_image_level.create_strided_boxes_columnfirst(fm_size=image_fm_size)
 
         default_boxes_xyxy_wrt_image = default_boxes_xyxy_wrt_image.view(1, 1, image_fm_size.h, image_fm_size.w, 4)
@@ -418,7 +418,7 @@ class Os2dHead(nn.Module):
                                         resampling_grids_x.max(dim=1)[0],
                                         resampling_grids_y.max(dim=1)[0]], 1)
 
-        # extract rectangle borders to draw complete boxes
+        # 提取矩形边框以绘制完整的框
         corner_coordinates = resampling_grids_image_coord[:,:,:,:,[0,-1]][:,:,:,:,:,[0,-1]] # only the corners
         corner_coordinates = corner_coordinates.detach_()
         corner_coordinates = corner_coordinates.view(batch_size, self.class_batch_size, image_fm_size.h, image_fm_size.w, 8) # batch_size x label_batch_size x fm_height x fm_width x 8
@@ -431,7 +431,7 @@ class Os2dHead(nn.Module):
         output_localization = Os2dBoxCoder.build_loc_targets(class_boxes, default_boxes_with_image_batches) # num_boxes x 4
         output_localization = output_localization.view(batch_size, self.class_batch_size, image_fm_size.h, image_fm_size.w, 4)  # batch_size x label_batch_size x fm_height x fm_width x 4
         output_localization = output_localization.transpose(3, 4).transpose(2, 3)  # batch_size x label_batch_size x 4 x fm_height x fm_width
-
+        #output_localization： 【1，,1，,4，,30，,40】，output_recognition：【1，,1，,1，30，,40】，output_recognition_transform_detached：【1，,1，,1，,30，,40】，corner_coordinates：【1，,1，,8，,30，40】
         return output_localization, output_recognition, output_recognition_transform_detached, corner_coordinates
 
 
@@ -497,10 +497,10 @@ class Os2dHead(nn.Module):
         resampling_grids_grid_coord_y_ = resampling_grids_grid_coord_y_.view_as(resampling_grids_grid_coord_x_)
         resampling_grids_grid_coord_merged_y_and_id_in_corr_map = torch.cat([resampling_grids_grid_coord_x_, resampling_grids_grid_coord_y_], dim=-1)
 
-        # flatten the resampling grid
+        # 展平重采样网格
         resampling_grids_grid_coord_merged_y_and_id_in_corr_map_1d = \
             resampling_grids_grid_coord_merged_y_and_id_in_corr_map.view(batch_size * class_batch_size, -1, 1, 2)
-        # extract the required points
+        # 提取需要的点
         matches_all_channels = F.grid_sample(corr_map_merged_y_and_id_in_corr_map.to(dtype=torch.double),
                                         resampling_grids_grid_coord_merged_y_and_id_in_corr_map_1d,
                                         mode="bilinear", padding_mode='border', align_corners=True)
@@ -510,13 +510,13 @@ class Os2dHead(nn.Module):
                                                 template_fm_size.h * template_fm_size.w)
         matches_all_channels = matches_all_channels.to(dtype=torch.float)
 
-        # combine extracted matches using the average pooling w.r.t. the mask of active points defined by class_pool_mask)
+        # 使用平均池 w.r.t. 组合提取的匹配项。由 class_pool_mask 定义的活动点mask）
         mask = class_pool_mask.view(1, class_batch_size, 1, 1, template_fm_size.h * template_fm_size.w)
         matches_all_channels = matches_all_channels * mask
 
         matches_pooled = matches_all_channels.sum(4)
         matches_pooled = matches_pooled.view(batch_size, class_batch_size, 1, image_fm_size.h, image_fm_size.w)
-        return matches_pooled
+        return matches_pooled  #eg:[1,1,1,30,40]
 
     @staticmethod
     def resample_of_correlation_map_simple(corr_maps, resampling_grids_grid_coord, class_pool_mask):
@@ -645,11 +645,11 @@ class TransformationNet(nn.Module):
             self.linear.cuda()
 
     def forward(self, corr_maps):
-        # normalization
+        # 使用相关性特征图进行回归bbox
         corr_maps_norm = normalize_feature_map_L2(F.relu(corr_maps))
         # corr_maps_norm = featureL2Norm(F.relu(corr_maps))
 
-        # apply the network
+        # apply the network， 【1，6，,30，40】
         transform_params = self.linear(self.conv(corr_maps_norm))
         return transform_params
 
