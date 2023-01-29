@@ -257,6 +257,7 @@ class DataloaderOneShotDetection():
         return self.dataset._get_dataset_image_by_id(image_id)
 
     def get_image_annotation_for_imageid(self, image_id):
+        # eg: image_id: 6， 图片的唯一id
         return self.dataset.get_image_annotation_for_imageid(image_id)
 
     def get_image_ids_for_batch_index(self, index):

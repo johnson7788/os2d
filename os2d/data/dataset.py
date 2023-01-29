@@ -38,7 +38,7 @@ def read_annotation_file(path):
         for row in dataframe["classid"]:
             classfilename.append(str(row)+".jpg")
         dataframe["classfilename"] = classfilename
-
+    # 需要的列包括： imageid: 图片的唯一id，对应的原始图片的id，imagefilename：原始图片的名字， classid：对应的类别，classfilename：类别对应的图片，gtbboxid：bbox的序号，没啥用，递增的， difficult：0，1是否是困难样本，"lx", "ty", "rx", "by"：bbox的4个点，已经归一化的
     required_columns = {"imageid", "imagefilename", "classid", "classfilename", "gtbboxid", "difficult", "lx", "ty", "rx", "by"}
     assert required_columns.issubset(dataframe.columns), "Missing columns in gtboxframe: {}".format(required_columns - set(dataframe.columns))
 
@@ -679,6 +679,9 @@ class DatasetOneShotDetection(data.Dataset):
 
     @staticmethod
     def get_boxes_from_image_dataframe(image_data, image_size):
+        """
+        image_data: dataframe, eg: [3,11], 11:从标注文件读取的11列
+        """
         if not image_data.empty:
             # get the labels
             label_ids_global = torch.tensor(list(image_data["classid"]), dtype=torch.long)
@@ -686,7 +689,7 @@ class DatasetOneShotDetection(data.Dataset):
 
             # get the boxes
             boxes = image_data[["lx", "ty", "rx", "by"]].to_numpy()
-            # renorm boxes using the image size
+            # 重新规范化bbox的尺寸根据图片的大小, 变成真实的bbox的位置
             boxes[:, 0] *= image_size.w
             boxes[:, 2] *= image_size.w
             boxes[:, 1] *= image_size.h
@@ -706,8 +709,9 @@ class DatasetOneShotDetection(data.Dataset):
         return boxes
 
     def get_image_annotation_for_imageid(self, image_id):
-        # 根据图片的id，获取图片的尺寸，bbox标签信息
+        # 根据图片的id，获取图片的尺寸，bbox标签信息, 获取这张image_id图片的所有bbox
         image_data = self.gtboxframe[self.gtboxframe["imageid"] == image_id]
+        # 每张图片的尺寸
         img_size = self.image_size_per_image_id[image_id]
         boxes = self.get_boxes_from_image_dataframe(image_data, img_size)
         return boxes
