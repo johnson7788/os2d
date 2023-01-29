@@ -51,14 +51,14 @@ cd $OS2D_ROOT
 ./os2d/utils/wget_gdrive.sh data/retail_test_sets.zip 1Vp8sm9zBOdshYvND9EPuYIu0O9Yo346J
 unzip data/retail_test_sets.zip -d data
 ```
-3. INSTRE datasets (2.3GB) are re-hosted in Center for Machine Perception in Prague (thanks to [Ahmet Iscen](http://cmp.felk.cvut.cz/~iscenahm/code.html)!): 
+3. INSTRE 数据集 (2.3GB) 重新托管在布拉格的机器感知中心 (thanks to [Ahmet Iscen](http://cmp.felk.cvut.cz/~iscenahm/code.html)!): 
 ```bash
 cd $OS2D_ROOT
 wget ftp://ftp.irisa.fr/local/texmex/corpus/instre/gnd_instre.mat -P data/instre  # 200KB
 wget ftp://ftp.irisa.fr/local/texmex/corpus/instre/instre.tar.gz -P data/instre  # 2.3GB
 tar -xzf data/instre/instre.tar.gz -C data/instre
 ```
-4. 如果你想添加你自己的数据集，你应该创建一个实例 `DatasetOneShotDetection` class and then pass it into the functions creating dataloaders `build_train_dataloader_from_config` or `build_eval_dataloaders_from_cfg` from [os2d/data/dataloader.py](os2d/data/dataloader.py). See [os2d/data/dataset.py](os2d/data/dataset.py) for docs and examples.
+4. 如果你想添加你自己的数据集，你应该创建一个实例 `DatasetOneShotDetection` 类，然后将其传递给创建数据加载器的函数 `build_train_dataloader_from_config` or `build_eval_dataloaders_from_cfg` from [os2d/data/dataloader.py](os2d/data/dataloader.py). See [os2d/data/dataset.py](os2d/data/dataset.py) for docs and examples.
 
 ## Trained models
 We release three pretrained models:

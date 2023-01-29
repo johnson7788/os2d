@@ -82,12 +82,12 @@ def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_imag
     classdatafile = os.path.join(data_path, "grozi", annotation_folder,"grozi.csv")
     gt_path = os.path.join(data_path, "grozi", annotation_folder, "images")  #类别图片
     image_path = os.path.join(data_path, "grozi", "src", str(image_size))
+    # 读取真实的标注
     gtboxframe = read_annotation_file(classdatafile)
-
     # define a subset split (using closure)
     subset_name = name.lower()
     assert subset_name.startswith("grozi"), ""
-    subset_name = subset_name[len("grozi"):]
+    subset_name = subset_name[len("grozi"):]  #判断是需要训练集还是测试集'-train'
     subsets = ["train", "val-old-cl", "val-new-cl", "val-all", "train-mini"]
     found_subset = False
     for subset in subsets:
@@ -116,7 +116,8 @@ def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_imag
             gtboxframe = gtboxframe[gtboxframe["split"] == subset]
     else:
         raise RuntimeError("Unknown subset {0}".format(subset))
-
+    # gtboxframe： dataframe: [7781,11], gt_path: 'xxx/data/grozi/classes/images', image_path: 'xxxx/os2d/data/grozi/src/3264', name:'grozi-train', image_size: 3264
+    # eval_scale: 1280.0, image_ids:list,  image_file_names: list, cache_images: bool, True, no_image_reading:bool, logger_prefix:
     dataset = DatasetOneShotDetection(gtboxframe, gt_path, image_path, name, image_size, eval_scale,
                                       image_ids=image_ids, image_file_names=image_file_names,
                                       cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
@@ -563,11 +564,11 @@ class DatasetOneShotDetection(data.Dataset):
                        image_ids=None, image_file_names=None, logger_prefix="OS2D"):
         self.logger = logging.getLogger(f"{logger_prefix}.dataset")
         self.name = name  #eg: 'grozi-train'
-        self.image_size = image_size   #
+        self.image_size = image_size   #3264
         self.eval_scale = eval_scale   # 评估图片的数量
-        self.cache_images = cache_images   # 缓存图片
+        self.cache_images = cache_images   # 是否缓存图片
 
-        self.gtboxframe = gtboxframe    #groundtruth box 的位置信息
+        self.gtboxframe = gtboxframe    #groundtruth box 的位置信息, dataframe
         required_columns = {"imageid", "imagefilename", "classid", "classfilename", "gtbboxid", "difficult", "lx", "ty", "rx", "by"}
         assert required_columns.issubset(self.gtboxframe.columns), "Missing columns in gtboxframe: {}".format(required_columns - set(self.gtboxframe.columns))
 
@@ -586,13 +587,13 @@ class DatasetOneShotDetection(data.Dataset):
         if not no_image_reading:
             # read GT images， 读取类别图像
             self._read_dataset_gt_images()
-            # read data images
+            # 读取数据图片
             self._read_dataset_images()
             self.have_images_read=True
 
-        self.num_images = len(self.image_ids)
-        self.num_boxes = len(self.gtboxframe)
-        self.num_classes = len(self.gtboxframe["classfilename"].unique())
+        self.num_images = len(self.image_ids)  #图片数量eg:596
+        self.num_boxes = len(self.gtboxframe)  #eg: 7781
+        self.num_classes = len(self.gtboxframe["classfilename"].unique())  #eg: 878
 
         self.logger.info("加载数据集成功，数据集名称： {0}，图片数量 {1}, boxes数量：{2} , 类别数量：{3}".format(
             self.name, self.num_images, self.num_boxes, self.num_classes
@@ -624,7 +625,7 @@ class DatasetOneShotDetection(data.Dataset):
         self.image_per_image_id = OrderedDict()
         for image_id, image_file in zip(self.image_ids, self.image_file_names):
             if image_id not in self.image_path_per_image_id:
-                # store the image path
+                # store the image path， img_path： '/media/wac/backup/john/johnson/os2d/data/grozi/src/3264/0.jpg'
                 img_path = os.path.join(self.image_path, image_file)
                 self.image_path_per_image_id[image_id] = img_path
                 # get image size (needed for bucketing)
@@ -665,7 +666,7 @@ class DatasetOneShotDetection(data.Dataset):
         if image_id not in self.image_per_image_id :
             img_path = self.image_path_per_image_id[image_id]
             img = read_image(img_path)
-            img_size = FeatureMapSize(img=img)
+            img_size = FeatureMapSize(img=img)  #eg: FeatureMapSize(w=3264, h=2448)
             if max(img_size.w, img_size.h) != self.image_size:
                 h, w = get_image_size_after_resize_preserving_aspect_ratio(img_size.h, img_size.w, self.image_size)
                 img = img.resize((w, h), resample=Image.ANTIALIAS) # resize images in case they were not of the correct size on disk
