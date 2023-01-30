@@ -9,7 +9,17 @@ import pandas as pd
 from tqdm import tqdm
 import random
 import shutil
+from PIL import Image
 from utils import read_data
+
+
+def read_image(image_path):
+    with open(image_path, "rb") as f:
+        img = Image.open(f)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        img.load()
+    return img
 
 def generate_cosmetic_data():
     """
@@ -56,6 +66,14 @@ def generate_cosmetic_data():
         split = random.choices(['train', 'val'], [0.8, 0.2], k=1)[0]
         imagefilename_path = one["path"]
         imagefilename = os.path.basename(imagefilename_path)
+        # 检查imagefilename_path， 如果无法打开，那么就跳过这条数据
+        try:
+            img = read_image(image_path=imagefilename_path)
+            # 图片的大小
+            width, height = img.size
+        except Exception as e:
+            print(f"图片: {imagefilename_path} 无法用Pillow打开，跳过这条数据")
+            continue
         # 拷贝图片到固定目录
         src_filepath = os.path.join(src_images_path, imagefilename)
         shutil.copy(src=imagefilename_path,dst=src_filepath)
@@ -79,7 +97,7 @@ def generate_cosmetic_data():
         }
         data.append(one_data)
     data_df = pd.DataFrame(data)
-    data_df.to_csv(annotation_file)
+    data_df.to_csv(annotation_file, index=False)
     print(f"生成comestic数据完成")
 
 if __name__ == '__main__':

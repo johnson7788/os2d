@@ -124,7 +124,7 @@ def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_imag
     return dataset
 def build_cosmetic_dataset(data_path, name, eval_scale, cache_images=False, no_image_reading=False, logger_prefix="OS2D"):
     logger = logging.getLogger(f"{logger_prefix}.dataset")
-    logger.info("准备 Cosmetic 数据集: version {0}, eval scale {1}, image caching {2}".format(name, eval_scale, cache_images))
+    logger.info("准备 Cosmetic 数据集: 数据集类型是 {0}, eval scale {1}, image caching {2}".format(name, eval_scale, cache_images))
     annotation_folder="classes"
     classdatafile = os.path.join(data_path, "cosmetic", annotation_folder,"cosmetic.csv")
     gt_path = os.path.join(data_path, "cosmetic", annotation_folder, "images")  #类别图片
@@ -669,11 +669,15 @@ class DatasetOneShotDetection(data.Dataset):
         return self.image_size_per_image_id[image_id]
 
     def _read_dataset_images(self):
-        # create caches
+        self.logger.info("读取所有标注的数据中，可能速度较慢")
         self.image_path_per_image_id = OrderedDict()
         self.image_size_per_image_id = OrderedDict()
         self.image_per_image_id = OrderedDict()
+        idx = 0
         for image_id, image_file in zip(self.image_ids, self.image_file_names):
+            idx += 1
+            if idx % 500 == 0:
+                self.logger.info(f"读取了: {idx} 张，总共: {len(self.image_ids)} 张")
             if image_id not in self.image_path_per_image_id:
                 # store the image path， img_path： '/media/wac/backup/john/johnson/os2d/data/grozi/src/3264/0.jpg'
                 img_path = os.path.join(self.image_path, image_file)
@@ -687,7 +691,10 @@ class DatasetOneShotDetection(data.Dataset):
     def _read_dataset_gt_images(self):
         self.gt_images_per_classid = OrderedDict()
         if self.gt_path is not None:
+            self.logger.info("读取类别图片中，速度较慢")
             for index, row in self.gtboxframe.iterrows():
+                if index % 500 == 0:
+                    self.logger.info(f"读取了: {index} 张，总共{self.gtboxframe.shape[0]} 张")
                 gt_file = row["classfilename"]
                 class_id = row["classid"]
                 if class_id not in self.gt_images_per_classid:
@@ -695,7 +702,7 @@ class DatasetOneShotDetection(data.Dataset):
                     self.gt_images_per_classid[class_id] = read_image(os.path.join(self.gt_path, gt_file))
             self.logger.info("读取了 {0} 张类别图像".format(len(self.gt_images_per_classid)))
         else:
-            self.logger.info("GT images are not provided")
+            self.logger.info("Ground Truth图片没有提供，请检查数据")
 
     def split_images_into_buckets_by_size(self):
         buckets = []
