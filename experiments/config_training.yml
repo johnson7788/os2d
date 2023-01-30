@@ -15,7 +15,7 @@ model:
   use_inverse_geom_model: False # Substitute v1: False v2 : True
   use_simplified_affine_model: True # Substitute v1: True v2 : False
 train:
-  dataset_name: "grozi-train"
+  dataset_name: "cosmetic-train"
   dataset_scale: 1280.0
   objective:
     class_objective: "RLL"
@@ -37,7 +37,7 @@ train:
     train_transform_on_negs: False
 eval:
   iter: 1000
-  dataset_names: ("grozi-val-new-cl",)
+  dataset_names: ("cosmetic-val",)
   dataset_scales: (1280.0,)
   mAP_iou_thresholds: (0.5,)
   

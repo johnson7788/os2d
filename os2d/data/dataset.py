@@ -122,6 +122,54 @@ def build_grozi_dataset(data_path, name, eval_scale, cache_images=False, no_imag
                                       image_ids=image_ids, image_file_names=image_file_names,
                                       cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
     return dataset
+def build_cosmetic_dataset(data_path, name, eval_scale, cache_images=False, no_image_reading=False, logger_prefix="OS2D"):
+    logger = logging.getLogger(f"{logger_prefix}.dataset")
+    logger.info("准备 Cosmetic 数据集: version {0}, eval scale {1}, image caching {2}".format(name, eval_scale, cache_images))
+    annotation_folder="classes"
+    classdatafile = os.path.join(data_path, "cosmetic", annotation_folder,"cosmetic.csv")
+    gt_path = os.path.join(data_path, "cosmetic", annotation_folder, "images")  #类别图片
+    image_path = os.path.join(data_path, "cosmetic", "src")
+    # 读取真实的标注
+    gtboxframe = read_annotation_file(classdatafile)
+    # define a subset split (using closure)
+    image_size = 800  # 图片变成多大的尺寸的
+    subset_name = name.lower()
+    assert subset_name.startswith("cosmetic"), ""
+    subset_name = subset_name[len("cosmetic"):]  #判断是需要训练集还是测试集'-train'
+    subsets = ["train", "val", "val-new-cl", "val-all", "train-mini"]
+    found_subset = False
+    for subset in subsets:
+        if subset_name == "-"+subset:
+            found_subset = subset
+            break
+    assert found_subset, "Could not identify subset {}".format(subset_name)
+
+    def get_unique_images(gtboxframe):
+        unique_images = gtboxframe[["imageid", "imagefilename"]].drop_duplicates()
+        image_ids = list(unique_images["imageid"])
+        image_file_names = list(unique_images["imagefilename"])
+        return image_ids, image_file_names  # 图片的id和图片的名称
+    # 根据用户提供的名字，name，判断是否加载训练集还是评估集
+    if subset in ["train", "train-mini"]:
+        gtboxframe = gtboxframe[gtboxframe["split"] == "train"]
+        image_ids, image_file_names = get_unique_images(gtboxframe)
+        if subset == "train-mini":
+            image_ids = image_ids[:2]
+            image_file_names = image_file_names[:2]
+            gtboxframe = gtboxframe[gtboxframe["imageid"].isin(image_ids)]
+    elif subset in ["val", "val-new-cl", "val-all"]:
+        gtboxframe = gtboxframe[gtboxframe["split"].isin(["val-old-cl", "val-new-cl"])]
+        image_ids, image_file_names = get_unique_images(gtboxframe)
+        if subset != "val-all":
+            gtboxframe = gtboxframe[gtboxframe["split"] == subset]
+    else:
+        raise RuntimeError("Unknown subset {0}".format(subset))
+    # gtboxframe： dataframe: [7781,11], gt_path: 'xxx/data/grozi/classes/images', image_path: 'xxxx/os2d/data/grozi/src/3264', name:'grozi-train', image_size: 3264
+    # eval_scale: 1280.0, image_ids:list,  image_file_names: list, cache_images: bool, True, no_image_reading:bool, logger_prefix:
+    dataset = DatasetOneShotDetection(gtboxframe, gt_path, image_path, name, image_size, eval_scale,
+                                      image_ids=image_ids, image_file_names=image_file_names,
+                                      cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
+    return dataset
 
 
 def build_instre_dataset(data_path, name, eval_scale, cache_images=False, no_image_reading=False, logger_prefix="OS2D"):
@@ -548,6 +596,8 @@ def build_repmet_dataset(data_path, name, eval_scale=None, cache_images=False, n
 def build_dataset_by_name(data_path, name, eval_scale, cache_images=False, no_image_reading=False, logger_prefix="OS2D"):
     if name.lower().startswith("grozi"):
         return build_grozi_dataset(data_path, name, eval_scale, cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
+    elif name.lower().startswith("cosmetic"):
+        return build_cosmetic_dataset(data_path, name, eval_scale, cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
     elif name.lower().startswith("instre"):
         return build_instre_dataset(data_path, name, eval_scale, cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
     elif name.lower().startswith("imagenet-repmet"):
@@ -690,10 +740,14 @@ class DatasetOneShotDetection(data.Dataset):
             # get the boxes
             boxes = image_data[["lx", "ty", "rx", "by"]].to_numpy()
             # 重新规范化bbox的尺寸根据图片的大小, 变成真实的bbox的位置
-            boxes[:, 0] *= image_size.w
-            boxes[:, 2] *= image_size.w
-            boxes[:, 1] *= image_size.h
-            boxes[:, 3] *= image_size.h
+            if (boxes > 1).any():
+                # 如果bbox的中的任意坐标是大于1的，说明给的是真实坐标，那么不用乘以图片的宽和高了
+                pass
+            else:
+                boxes[:, 0] *= image_size.w
+                boxes[:, 2] *= image_size.w
+                boxes[:, 1] *= image_size.h
+                boxes[:, 3] *= image_size.h
             boxes = torch.FloatTensor(boxes)
 
             boxes = BoxList(boxes, image_size=image_size, mode="xyxy")
