@@ -8,6 +8,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 import random
+import collections
 import shutil
 from PIL import Image
 from utils import read_data
@@ -47,6 +48,7 @@ def generate_cosmetic_data():
     # 保存数据到指定目录
     # 保存到csv文件的列, gtbboxid,classid,imageid,lx,rx,ty,by,difficult,split, imagefilename, classfilename
     # 所有的商品
+    image_size_counter = collections.Counter()
     data = []
     class2id = {}
     for idx, one in enumerate(tqdm(source_data)):
@@ -71,6 +73,7 @@ def generate_cosmetic_data():
             img = read_image(image_path=imagefilename_path)
             # 图片的大小
             width, height = img.size
+            image_size_counter[f"{width}x{height}"] += 1
         except Exception as e:
             print(f"图片: {imagefilename_path} 无法用Pillow打开，跳过这条数据")
             continue
@@ -98,7 +101,7 @@ def generate_cosmetic_data():
         data.append(one_data)
     data_df = pd.DataFrame(data)
     data_df.to_csv(annotation_file, index=False)
-    print(f"生成comestic数据完成")
+    print(f"生成comestic数据完成, 商品头图图片的尺寸统计: {image_size_counter}")
 
 if __name__ == '__main__':
     generate_cosmetic_data()
