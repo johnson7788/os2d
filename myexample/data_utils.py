@@ -22,9 +22,10 @@ def read_image(image_path):
         img.load()
     return img
 
-def generate_cosmetic_data():
+def generate_cosmetic_data(check_image=False):
     """
     生成化妆品的数据集
+    :param check_image: 检查图片是否能被Pillow打开
     """
     data_path = "../data/cosmetic"
     # 创建标注的类别目录
@@ -68,15 +69,16 @@ def generate_cosmetic_data():
         split = random.choices(['train', 'val'], [0.8, 0.2], k=1)[0]
         imagefilename_path = one["path"]
         imagefilename = os.path.basename(imagefilename_path)
-        # 检查imagefilename_path， 如果无法打开，那么就跳过这条数据
-        try:
-            img = read_image(image_path=imagefilename_path)
-            # 图片的大小
-            width, height = img.size
-            image_size_counter[f"{width}x{height}"] += 1
-        except Exception as e:
-            print(f"图片: {imagefilename_path} 无法用Pillow打开，跳过这条数据")
-            continue
+        if check_image:
+            # 检查imagefilename_path， 如果无法打开，那么就跳过这条数据
+            try:
+                img = read_image(image_path=imagefilename_path)
+                # 图片的大小
+                width, height = img.size
+                image_size_counter[f"{width}x{height}"] += 1
+            except Exception as e:
+                print(f"图片: {imagefilename_path} 无法用Pillow打开，跳过这条数据")
+                continue
         # 拷贝图片到固定目录
         src_filepath = os.path.join(src_images_path, imagefilename)
         shutil.copy(src=imagefilename_path,dst=src_filepath)
