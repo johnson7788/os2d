@@ -66,8 +66,10 @@ def generate_cosmetic_data(check_image=False):
         # bbox是左上角的点和右下角的点, 需要换成百分比格式
         lx, ty, rx, by = one['bbox']
         difficult = random.choice([0,1])
-        split = random.choices(['train', 'val'], [0.8, 0.2], k=1)[0]
+        split = random.choices(['train-mini','train', 'val'], [0.2, 0.6, 0.2], k=1)[0]
         imagefilename_path = one["path"]
+        if not os.path.exists(imagefilename_path):
+            continue
         imagefilename = os.path.basename(imagefilename_path)
         if check_image:
             # 检查imagefilename_path， 如果无法打开，那么就跳过这条数据

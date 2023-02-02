@@ -136,7 +136,7 @@ def build_cosmetic_dataset(data_path, name, eval_scale, cache_images=False, no_i
     subset_name = name.lower()
     assert subset_name.startswith("cosmetic"), ""
     subset_name = subset_name[len("cosmetic"):]  #判断是需要训练集还是测试集'-train'
-    subsets = ["train", "val", "val-new-cl", "val-all", "train-mini"]
+    subsets = ["train", "val", "train-mini","val-mini"]
     found_subset = False
     for subset in subsets:
         if subset_name == "-"+subset:
@@ -154,18 +154,19 @@ def build_cosmetic_dataset(data_path, name, eval_scale, cache_images=False, no_i
         gtboxframe = gtboxframe[gtboxframe["split"] == "train"]
         image_ids, image_file_names = get_unique_images(gtboxframe)
         if subset == "train-mini":
-            image_ids = image_ids[:2]
-            image_file_names = image_file_names[:2]
+            image_ids = image_ids[:40]
+            image_file_names = image_file_names[:40]
             gtboxframe = gtboxframe[gtboxframe["imageid"].isin(image_ids)]
-    elif subset in ["val", "val-new-cl", "val-all"]:
-        gtboxframe = gtboxframe[gtboxframe["split"].isin(["val-old-cl", "val-new-cl"])]
+    elif subset in ["val", "val-mini"]:
+        gtboxframe = gtboxframe[gtboxframe["split"].isin(["val"])]
+        if subset == "val-mini":
+            gtboxframe = gtboxframe[:20]
         image_ids, image_file_names = get_unique_images(gtboxframe)
-        if subset != "val-all":
-            gtboxframe = gtboxframe[gtboxframe["split"] == subset]
     else:
         raise RuntimeError("Unknown subset {0}".format(subset))
     # gtboxframe： dataframe: [7781,11], gt_path: 'xxx/data/grozi/classes/images', image_path: 'xxxx/os2d/data/grozi/src/3264', name:'grozi-train', image_size: 3264
     # eval_scale: 1280.0, image_ids:list,  image_file_names: list, cache_images: bool, True, no_image_reading:bool, logger_prefix:
+    assert len(image_ids) != 0, "获取的数据不能为空"
     dataset = DatasetOneShotDetection(gtboxframe, gt_path, image_path, name, image_size, eval_scale,
                                       image_ids=image_ids, image_file_names=image_file_names,
                                       cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
