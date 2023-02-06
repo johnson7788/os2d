@@ -68,7 +68,7 @@ def log_meters(log, t_start, i_iter, log_path,
             for meter_name, meter in subset_data.items():
                 update_meter(log, meter_name + "_" + subset_name, num_log_steps, meter)
 
-    # update other meters with NaNs to make sure all the meters are of equal length
+    # 用NaN更新其他meter，以确保所有meter的长度相等。
     for name, meter in log.items():
         while len(meter) < num_log_steps:
             meter.append(float("nan"))
@@ -147,7 +147,7 @@ def checkpoint_model(net, optimizer, log_path, is_cuda, model_name=None, i_iter=
             checkpoint.update(extra_fields)
         checkpoint_file_name = f"checkpoint_{model_name}.pth" if model_name else f"checkpoint_iter_{i_iter}.pth"
         checkpoint_file = os.path.join(log_path, checkpoint_file_name)
-        logger.info("Saving checkpoint {0}".format(checkpoint_file))
+        logger.info("保存 checkpoint到 {0}".format(checkpoint_file))
         torch.save(checkpoint, checkpoint_file)
     except (KeyboardInterrupt, SystemExit):
         raise

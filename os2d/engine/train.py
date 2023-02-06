@@ -141,10 +141,10 @@ def train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader, logg
 
 @torch.no_grad() # mine patches in forward mode (for speed and memory)
 def mine_hard_patches(dataloader, net, cfg, criterion):
-    """Mine patches that are hard: classification false positives and negative, localization errors
-    At each level of sampled image pyramid, we need to cut out a piece of size appropriate for training
-    (levels are defined by cfg.train.mining.num_random_pyramid_scales, cfg.train.mining.num_random_negative_classes)
-
+    """
+    挖掘难的碎片：分类假正例和负例，定位错误
+    在采样图像金字塔的每一级，我们需要切出一块适合训练的尺寸
+    (级别由cfg.train.mine.num_random_pyramid_scales、cfg.train.mine.num_random_negative_classes定义)
     Args:
         dataloader - dataloader to use (often the same as the one for training)
         net - the network to use
@@ -156,7 +156,7 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
             further used in dataloader.set_hard_negative_data(hardnegdata_per_imageid) when preparing batches
     """
     logger = logging.getLogger("OS2D.mining_hard_patches")
-    logger.info("Starting to mine hard patches")
+    logger.info("开始困难样本挖掘")
     t_start_mining = time.time()
     net.eval()
     num_batches = len(dataloader)
@@ -172,21 +172,28 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
     gt_boxes = []
     losses = OrderedDict()
 
-    # loop over all dataset images
+    # 循环处理所有数据集的图像
     for data in iterator:
         t_item_start = time.time()
-
+        # image_id: 6, image_loc_scores_p:list, 7([185,4,1200|1900|3072|...|12288]),  这张图片的id
+        # image_class_scores_p:list, 7*(185,1200|1900|3072|...|12288])   #7个特征金字塔中，bbox的分类分数
+        # one_image_pyramid: list, 7*[(3,480,640),(3,600,800),...(3,1536,2048) # 7个特征金字塔的大小
+        # batch_query_img_sizes: 185 eg: (FeatureMapSize(w=216, h=265)...FeatureMapSize(w=178, h=322)) 每个类别的特征图尺寸
+        # batch_class_ids: list 185, 每个列表的id
+        # box_reverse_transforms: 7* (每个特征金字塔的感受野）
+        # image_fm_sizes_p: 每个特征金字塔特征图大小
+        # transform_corners_p： 7* ([185,8,1200|1900|3072|...|12288])
         image_id, image_loc_scores_pyramid, image_class_scores_pyramid, \
                     image_pyramid, query_img_sizes, \
                     batch_class_ids, box_reverse_transform_pyramid, image_fm_sizes_p, transform_corners_pyramid \
                 = data
 
         img_size_pyramid = [FeatureMapSize(img=image) for image in image_pyramid]
-
+        # 获取图像的groundtruth
         gt_boxes_one_image = dataloader.get_image_annotation_for_imageid(image_id)
         gt_boxes.append(gt_boxes_one_image)
 
-        # compute losses
+        #计算损失
         # change labels to the ones local to the current image
         dataloader.update_box_labels_to_local(gt_boxes_one_image, batch_class_ids)
         num_labels = len(batch_class_ids)
@@ -423,6 +430,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
         _, anneal_lr_func = setup_lr(optimizer, full_log, cfg.train.optim.anneal_lr, cfg.eval.iter)
 
         # 评估初始模型
+        logger.info(f"训练前首次评估模型")
         meters_eval = evaluate_model(dataloaders_eval, net, cfg, criterion)
         
         if cfg.output.best_model.do_get_best_model:
@@ -432,7 +440,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
             best_model_dataset_name = cfg.output.best_model.dataset if cfg.output.best_model.dataset else cfg.eval.dataset_names[0]
             best_model_metric = meters_eval[best_model_dataset_name][cfg.output.best_model.metric]
 
-            logger.info(f"Init model is the current best on {best_model_dataset_name} by {cfg.output.best_model.metric}, value {best_model_metric:.4f}")
+            logger.info(f"在数据集上 {best_model_dataset_name} 测试初始化的模型，最好的性能是： {cfg.output.best_model.metric}, value {best_model_metric:.4f}")
             if cfg.output.path:
                 checkpoint_best_model_name = f"best_model_{best_model_dataset_name}_{cfg.output.best_model.metric}"
                 checkpoint_best_model_path = \
@@ -458,7 +466,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
         if cfg.output.path:
             checkpoint_model(net, optimizer, cfg.output.path, cfg.is_cuda, i_iter=0)
 
-        # start training
+        logger.info(f"正式开始训练模型")
         i_epoch = 0
         i_batch = len(dataloader_train)  # to start a new epoch at the first iteration
         for i_iter in range(cfg.train.optim.max_iter):
@@ -469,7 +477,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
                 # shuffle dataset
                 dataloader_train.shuffle()
 
-            # mine hard negative classes
+            # 挖掘困难样本类
             if cfg.train.mining.do_mining and i_iter % cfg.train.mining.mine_hard_patches_iter == 0:
                 hardnegdata_per_imageid = mine_hard_patches(dataloader_train, net, cfg, criterion)
                 dataloader_train.set_hard_negative_data(hardnegdata_per_imageid)

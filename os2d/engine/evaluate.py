@@ -214,9 +214,9 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
     """
 
     logger.info("从所有图像中提取分数")
-    # get images of all classes, class_images: list(tensor), 185,[1,3,265,216], [1,RGB,w,h] ,class_aspect_ratios:每个类的特征图的大小list,(w,h), class_ids: 类别id, list
+    # 获取所有类的图像, class_images: list(tensor), 185,[1,3,265,216], [1,RGB,w,h] ,class_aspect_ratios:每个类的特征图的大小list,(w,h), class_ids: 类别id, list
     class_images, class_aspect_ratios, class_ids = dataloader.get_all_class_images()
-    num_classes = len(class_images)
+    num_classes = len(class_images)  #类别图像数量，eg: 28
     assert len(class_aspect_ratios) == num_classes
     assert len(class_ids) == num_classes
     query_img_sizes = [FeatureMapSize(img=img) for img in class_images]
@@ -237,7 +237,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
             im = class_images[i + i_label].squeeze(0)
             if is_cuda:
                 im = im.cuda()
-            batch_class_images.append(im)
+            batch_class_images.append(im)  # eg: [3,240,240]
             if not class_image_augmentation:
                 num_class_views = 1
             elif class_image_augmentation == "rotation90":
