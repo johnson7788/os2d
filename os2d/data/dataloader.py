@@ -475,7 +475,7 @@ class DataloaderOneShotDetection():
                 transforms_this_batch = pyramid_box_inverse_transform_all_images
                 for i_p in range(len(pyramid_scales)):
                     pyramids_this_batch.append( torch.stack( [ p_one_image[i_p] for p_one_image in img_pyramid_all_images ], 0) )
-
+                # batch_ids: eg: ['eaf2e2f6017cdcd7c1a58d45c6659ec1'], pyramids_this_batch: list(tensor), 这批次的特征金字塔， transforms_this_batch： ？？， initial_img_size_this_batch: list, [FeatureMapSize(w=800, h=800)]
                 yield batch_ids, pyramids_this_batch, transforms_this_batch, initial_img_size_this_batch
 
     @staticmethod
