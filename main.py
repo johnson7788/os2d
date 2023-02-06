@@ -81,11 +81,12 @@ def main():
     parameters = get_trainable_parameters(net)
     optimizer = create_optimizer(parameters, cfg.train.optim, optimizer_state)
 
-    # 加载数据集， 数据集目录路径： data_path
+    # 加载数据集， 数据集目录路径： data_path， eg: 'xxx/os2d/data'
     data_path = get_data_path()
+    # 加载训练集
     dataloader_train, datasets_train_for_eval = build_train_dataloader_from_config(cfg, box_coder, img_normalization,
                                                                                    data_path=data_path)
-
+    # 加载评估集
     dataloaders_eval = build_eval_dataloaders_from_cfg(cfg, box_coder, img_normalization,
                                                        datasets_for_eval=datasets_train_for_eval,
                                                        data_path=data_path)

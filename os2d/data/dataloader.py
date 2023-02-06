@@ -422,9 +422,9 @@ class DataloaderOneShotDetection():
         class_ids = sorted(list(class_ids))
         class_images, class_image_sizes = self.get_class_images_and_sizes(class_ids, do_augmentation=False)  #获取PIL图像和图像的特征图大小
         batch_class_images = [self._transform_image_gt(img, do_augmentation=False, do_resize=do_resize) for img in class_images]
-
         # 要具有适当的维度，只需将维度零添加到所有图像
         batch_class_images = [img.unsqueeze(0) for img in batch_class_images]
+        # 返回tensor格式的class图像，class的图像大小，class的labelid
         return batch_class_images, class_image_sizes, class_ids
 
     def get_class_ids_for_image_ids(self, image_ids):

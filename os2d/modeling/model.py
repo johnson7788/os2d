@@ -331,60 +331,60 @@ class Os2dModel(nn.Module):
 
         if init_affine_transform_path:
             try:
-                self.logger.info("Trying to init affine transform from {}".format(init_affine_transform_path))
+                self.logger.info("尝试初始化仿射变换从 {}".format(init_affine_transform_path))
                 try:
                     model_data = torch.load(init_affine_transform_path)
                 except:
-                    self.logger.info("Could not read the model file {0}.".format(path))
+                    self.logger.info("不能读取模型文件 {0}.".format(path))
                 assert hasattr(self, "os2d_head_creator") and hasattr(self.os2d_head_creator, "aligner") and hasattr(self.os2d_head_creator.aligner, "parameter_regressor"), "Need to have the affine regressor part to inialize it"
                 init_from_weakalign_model(model_data["state_dict"], None,
                                           affine_regressor=self.os2d_head_creator.aligner.parameter_regressor)
-                self.logger.info("Successfully initialized the affine transform from the provided weakalign model.")
+                self.logger.info("成功地从所提供的弱对准模型中初始化了仿射变换。")
             except:
-                self.logger.info("Could not init affine transform from {0}.".format(init_affine_transform_path))
+                self.logger.info("无法启动仿射变换，从 {0}.".format(init_affine_transform_path))
 
         return optimizer
 
     def _load_network(self, net, path=None, model_data=None):
-        """_load_network loads weights from the provided path to a network net
-        It will try several ways to load the weights (in the order below) by doing the follwoing steps:
-        0) in model_data one can provide the already loaded weights (useful not to load many times) otherwise reads from path with torch.load
-        1) tries to load complete network as net.load_state_dict(model_data)
-        2) if fails, tries to load as follows: net.load_state_dict(model_data["net"], strict=False)
-        3) if fails, tries to load from the weak align format with init_from_weakalign_model(model_data["state_dict"], self.net_feature_maps)
-        4) if fails tries to partially init backbone with net.load_state_dict(model_data, strict=False) - works for the standard pytorch models
+        """_load_network 将所提供的路径中的权重加载到一个网络net中。
+        它将通过以下步骤尝试几种加载权重的方法（按以下顺序）。
+        0) 在model_data中可以提供已经加载的权重（不需要多次加载），否则用torch.load从路径中读取。
+        1) 尝试以net.load_state_dict(model_data)加载完整的网络
+        2) 如果失败了，尝试以如下方式加载：net.load_state_dict(model_data["net"], strict=False)
+        3) 如果失败，尝试用 init_from_weakalign_model(model_data["state_dict"], self.net_feature_maps) 从弱对齐格式加载。
+        4) 如果失败，尝试用net.load_state_dict(model_data, strict=False)部分启动主干 - 对标准pytorch模型有效
         """
         if model_data is None:
             try:
-                self.logger.info("Trying to init from {}".format(path))
+                self.logger.info("试图从 {} 中初始化模型".format(path))
                 model_data = torch.load(path)
             except:
-                self.logger.info("Could not read the model file {0}. Starting from scratch.".format(path))
+                self.logger.info("不能读取模型文件 {0}. Starting from scratch.".format(path))
         else:
-            self.logger.info("Initializing from provided weights")
+            self.logger.info("根据提供的权重进行初始化")
         if model_data is not None:
             try:
                 net.load_state_dict(model_data)
             except:
-                self.logger.info("FAILED to load as network")
+                self.logger.info("加载模型model_data数据失败")
                 try:
-                    self.logger.info("Trying to init from {} as checkpoint".format(path))
+                    self.logger.info("尝试初始化网络从checkpoint中： {}".format(path))
                     net.load_state_dict(model_data["net"], strict=False)
                     self.logger.info("Loaded epoch {0} with loss {1}".format(model_data["epoch"], model_data["loss"]))
                 except:
-                    self.logger.info("FAILED to load as checkpoint")
-                    self.logger.info("Could not init the full feature extractor. Trying to init form a weakalign model")
+                    self.logger.info("从checkpoint中加载失败")
+                    self.logger.info("无法启动完整的特征提取器。试图以弱对齐模型的形式启动")
                     try:
                         init_from_weakalign_model(model_data["state_dict"],
                                                   self.net_feature_maps)
-                        self.logger.info("Successfully initialized form the provided weakalign model.")
+                        self.logger.info("成功地初始化了所提供的弱对齐模型。")
                     except:
-                        self.logger.info("Could not init from the weakalign network. Trying to init backbone from {}.".format(path))
+                        self.logger.info("无法从弱对齐网络中启动。试图从以下地方启动主干网 {}.".format(path))
                         try:
                             net.load_state_dict(model_data, strict=False)
-                            self.logger.info("Successfully initialized backbone.")
+                            self.logger.info("成功地初始化了主干网络。")
                         except:
-                            self.logger.info("Could not init anything. Starting from scratch.")
+                            self.logger.info("不能初始化任何网络，从头开始构建网络")
 
 
 def init_from_weakalign_model(src_state_dict, feature_extractor=None, affine_regressor=None, tps_regressor=None):

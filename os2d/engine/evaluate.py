@@ -196,7 +196,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
     Returns:
         在数据元组上创建一个迭代器：
         image_id (int)
-        image_loc_scores_p (list of tensors) - localization scores to get bounding boxes when decoding
+        image_loc_scores_p (list of tensors) - 在解码时获得bounding boxes的定位分数
             len(image_loc_scores_p) = num pyramid levels, tensor size: num_labels x 4 x num_anchors
         image_class_scores_p (list of tensors) - clasification scores to recognize classes when decoding
             len(image_class_scores_p) = num pyramid levels, tensor size: num_labels x num_anchors
@@ -227,7 +227,7 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
     # 从批次的类图像中提取所有类卷积
     class_conv_layer_batched = []
-    logger.info("提取权重从 {0} 个类别中，{1}".format(num_classes,
+    logger.info("从 {0} 个类别中提取权重。{1}".format(num_classes,
         f" with {class_image_augmentation} augmentation" if class_image_augmentation else ""))
     for i in range(0, num_classes, class_batch_size):
         batch_class_ids = class_ids[i : i + class_batch_size]

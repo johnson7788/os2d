@@ -13,7 +13,7 @@ class Os2dObjective(nn.Module):
     """检测训练目标:
         loss = ClassificationLoss(cls_preds, cls_targets) + localization_weight * SmoothL1Loss(loc_preds, loc_targets)
 
-        Supported classification losses: ContrastiveLoss, RLL
+        支持分类损失: ContrastiveLoss, RLL
     """
     def __init__(self, class_loss, margin, margin_pos, class_loss_neg_weight, remap_classification_targets,
                        localization_weight,
