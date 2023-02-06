@@ -49,7 +49,7 @@ cfg.train.dataset_name = "grozi-train"
 # The longer image side used to sample train patches at training.
 # This parameter should be set according to the expected object sizes in the dataset.
 cfg.train.dataset_scale = 1280.0
-# Cache dataset images in memory vs reading on the fly. Trade-off RAM vs dataloading speed
+# 在内存中缓存数据集图像，而不是即时读取. Trade-off RAM vs dataloading speed
 cfg.train.cache_images = True
 
 cfg.train.objective = CN()

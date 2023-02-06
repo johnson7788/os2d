@@ -9,14 +9,16 @@ output:
 is_cuda: True
 random_seed: 0
 init:
-  model: "" # Substitute "models/resnet50-19c8e357.pth"
+  model: "" # 可以用其它模型初始化这个模型参数 "models/resnet50-19c8e357.pth"
 model:
   backbone_arch: "" # Substitute "ResNet50" or "ResNet101"
   use_inverse_geom_model: False # Substitute v1: False v2 : True
   use_simplified_affine_model: True # Substitute v1: True v2 : False
 train:
-  dataset_name: "cosmetic-train-mini"
+#  dataset_name: "cosmetic-train-mini"
+  dataset_name: "cosmetic-train"
   dataset_scale: 1280.0
+  cache_images: False
   objective:
     class_objective: "RLL"
     loc_weight: 0.0 # Substitute v1: 0.2, v2: 0.0
@@ -36,8 +38,9 @@ train:
     freeze_bn_transform: True # Substitute v1: False, v2: True
     train_transform_on_negs: False
 eval:
-  iter: 1000
-  dataset_names: ("cosmetic-val-mini",)
+  iter: 1000    #训练多少个step，进行一次评估
+#  dataset_names: ("cosmetic-val-mini",)
+  dataset_names: ("cosmetic-val",)
   dataset_scales: (1280.0,)
   mAP_iou_thresholds: (0.5,)
   

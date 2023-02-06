@@ -41,7 +41,7 @@ def read_annotation_file(path):
     # 需要的列包括： imageid: 图片的唯一id，对应的原始图片的id，imagefilename：原始图片的名字， classid：对应的类别，classfilename：类别对应的图片，gtbboxid：bbox的序号，没啥用，递增的， difficult：0，1是否是困难样本，"lx", "ty", "rx", "by"：bbox的4个点，已经归一化的
     required_columns = {"imageid", "imagefilename", "classid", "classfilename", "gtbboxid", "difficult", "lx", "ty", "rx", "by"}
     assert required_columns.issubset(dataframe.columns), "Missing columns in gtboxframe: {}".format(required_columns - set(dataframe.columns))
-
+    # dataframe：df格式，(39129,11) ，11列，读取了39129个bbox
     return dataframe
 
 
