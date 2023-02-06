@@ -278,7 +278,7 @@ class DataloaderOneShotDetection():
         img_size = FeatureMapSize(img=img)  #获取图像的大小, FeatureMapSize(w=3264, h=2448)
         # 是否使用数据增强， False
         do_augmentation = do_augmentation and self.data_augmentation is not None
-        num_pyramid_levels = len(pyramid_scales)
+        num_pyramid_levels = len(pyramid_scales)  #pyramid_scales: [0.8, 1.0, 1.2800000000000002, 1.6, 1.92, 2.2399999999999998, 2.5600000000000005]
 
         use_mined_crop = mined_data is not None
         if use_mined_crop:
@@ -290,7 +290,7 @@ class DataloaderOneShotDetection():
         mask_difficult_boxes = torch.zeros(len(boxes), dtype=torch.bool)
 
         box_inverse_transform = TransformList()
-        # 批级数据增强
+        # 批级数据增强, img,[800x800]
         img, boxes = transforms_boxes.transpose(img, hflip=hflip, vflip=vflip, 
                                                 boxes=boxes,
                                                 transform_list=box_inverse_transform)
@@ -323,8 +323,9 @@ class DataloaderOneShotDetection():
             img = self.data_augmentation.random_distort(img)
 
         random_interpolation = self.data_augmentation.random_interpolation if do_augmentation else False
-        img_size = FeatureMapSize(img=img)
-        pyramid_sizes = [ FeatureMapSize(w=int(img_size.w * s), h=int(img_size.h * s)) for s in pyramid_scales ]
+        img_size = FeatureMapSize(img=img) #eg: FeatureMapSize(w=800, h=800)
+        # 特征金字塔的尺寸，pyramid_sizes: list, 每个尺寸，egL 640x640, 800x800,..
+        pyramid_sizes = [FeatureMapSize(w=int(img_size.w * s), h=int(img_size.h * s)) for s in pyramid_scales]
         img_pyramid = []
         boxes_pyramid = []
         pyramid_box_inverse_transform = []
@@ -333,7 +334,7 @@ class DataloaderOneShotDetection():
             p_img, p_boxes = transforms_boxes.resize(img, target_size=p_size, random_interpolation=random_interpolation,
                                                      boxes=boxes,
                                                      transform_list=box_inverse_transform_this_scale)
-            
+            # eg: p_img: <PIL.Image.Image image mode=RGB size=640x640 at 0x7F8E3A1FA6A0>
             pyramid_box_inverse_transform.append(box_inverse_transform_this_scale)
             img_pyramid.append( p_img )   #eg: <PIL.Image.Image image mode=RGB size=1280x960 at 0x7EFBBDBDBEB0>
             boxes_pyramid.append( p_boxes )   #eg: BoxList(num_boxes=0, image_width=1280, image_height=960, )
@@ -344,7 +345,7 @@ class DataloaderOneShotDetection():
 
         for i_p in range(num_pyramid_levels):
             img_pyramid[i_p] = transforms.Compose(transforms_th)( img_pyramid[i_p] )
-        # img_pyramid: 不同尺寸的特征金字塔向量，boxes_pyramid: 每个特征金字塔对应的感受野，
+        # img_pyramid: 不同尺寸的特征金字塔向量, list:7, [3,640,640],[3,800,800]，boxes_pyramid: list,每个特征金字塔对应的感受野，mask_cutoff_boxes和mask_difficult_boxes: tensor([], dtype=torch.bool), pyramid_box_inverse_transform, list,7, 每个，<os2d.structures.transforms.TransformList object>
         return img_pyramid, boxes_pyramid, mask_cutoff_boxes, mask_difficult_boxes, pyramid_box_inverse_transform
 
     def _transform_image(self, image_id, boxes=None, do_augmentation=True, hflip=False, vflip=False, mined_data=None):
@@ -431,9 +432,9 @@ class DataloaderOneShotDetection():
         return self.dataset.get_class_ids_for_image_ids(image_ids)
 
     def make_iterator_for_all_images(self, batch_size, num_random_pyramid_scales=0):
-        # 再次创建桶不要打乱或重新打乱用于训练的桶
+        # 再次创建桶不要打乱或重新打乱用于训练的桶, batch_size: 1, num_random_pyramid_scales:0
         buckets_ids = self.dataset.split_images_into_buckets_by_size()
-        
+        # batch_size:1, num_batches: 20
         batch_size = max(len(ids) for ids in buckets_ids) if batch_size is None else batch_size
         num_batches = (sum( int(math.ceil(len(ids) / batch_size)) for ids in buckets_ids))
         i_batch = 0
@@ -445,8 +446,8 @@ class DataloaderOneShotDetection():
             for batch_start in range(0, size_b, batch_size):
                 self.logger.info("图像批次 {0} 中包含的图像个数是 {1}".format(i_batch, num_batches))
                 i_batch += 1
+                # eg: batch_ids: ['eaf2e2f6017cdcd7c1a58d45c6659ec1'], 存储图片的id
                 batch_ids = ids_b[batch_start : batch_start + batch_size]
-
                 img_pyramid_all_images = []
                 pyramid_box_inverse_transform_all_images = []
                 initial_img_size_this_batch = []
@@ -460,6 +461,7 @@ class DataloaderOneShotDetection():
                     pyramid_scales = [torch.rand(1).item() * (max_scale - min_scale) + min_scale  for i in range(num_random_pyramid_scales)]
 
                 for image_id in batch_ids:
+                    #  img_pyramid: 不同尺寸的特征金字塔向量, list:7, [3,640,640],[3,800,800]，boxes_pyramid: list,每个特征金字塔对应的感受野，mask_cutoff_boxes和mask_difficult_boxes: tensor([], dtype=torch.bool), pyramid_box_inverse_transform, list,7, 每个，<os2d.structures.transforms.TransformList object>
                     img_pyramid, boxes_pyramid, mask_cutoff_boxes, mask_difficult_boxes, pyramid_box_inverse_transform = \
                                 self._transform_image_to_pyramid(image_id,
                                                                 boxes=None,

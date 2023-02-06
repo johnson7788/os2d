@@ -270,12 +270,12 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
         for b_im in batch_class_images:
             class_feature_maps = net.net_label_features([b_im])   #前向传播，提取图片的类别特征图
-            #
+            # Os2Head实例
             class_conv_layer = net.os2d_head_creator.create_os2d_head(class_feature_maps)
-            #
+            # 加到一个列表中
             class_conv_layer_batched.append(class_conv_layer)
     
-    # 遍历所有图像
+    # 遍历所有图像， image_batch_size：1, num_random_pyramid_scales:0
     iterator_batches = dataloader.make_iterator_for_all_images(image_batch_size, num_random_pyramid_scales=num_random_pyramid_scales)
     for batch_ids, pyramids_batch, box_transforms_batch, initial_img_size_batch in iterator_batches:
         # batch_ids: 批次id, [6], pyramids_batch: list，这个批次的特征金字塔, box_transforms_batch:bbox框信息，initial_img_size_batch:list，初始特征图尺寸 [FeatureMapSize(w=3264, h=2448)]

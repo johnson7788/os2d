@@ -716,6 +716,7 @@ class DatasetOneShotDetection(data.Dataset):
             # 将项目添加到合适的桶中， 根据图片的特征图尺寸，放入不同的桶中
             i_bucket = bucket_image_size.index(s)
             buckets[i_bucket].append(image_id)
+        # buckets: list[list], 里面是每个图像的id
         return buckets
 
     def _get_dataset_image_by_id(self, image_id):

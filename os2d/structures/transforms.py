@@ -30,10 +30,11 @@ class TransformList:
 def check_image_size(img, boxes):
     if boxes is not None:
         assert boxes.image_size == FeatureMapSize(img=img),\
-            "Size of the image should match the size store in the accompanying BoxList"
+            "图像的大小应与随附的BoxList中存储的大小一致"
 
 
 def transpose(img, hflip=False, vflip=False, boxes=None, transform_list=None):
+    # 对图片进行数据增强
     check_image_size(img, boxes)
     if hflip:
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
