@@ -26,7 +26,7 @@ import os2d.utils.visualization as visualizer
 
 
 def prepare_batch_data(batch_data, is_cuda, logger):
-    """Helper function to parse batch_data and put tensors on a GPU.
+    """解析batch_data并将张量放在GPU上的辅助函数。
     Used in train_one_batch
     """
     images, class_images, loc_targets, class_targets, class_ids, class_image_sizes, \
@@ -38,14 +38,14 @@ def prepare_batch_data(batch_data, is_cuda, logger):
         loc_targets = loc_targets.cuda()
         class_targets = class_targets.cuda()
 
-    logger.info("{0} imgs, {1} classes".format(images.size(0), len(class_images)))
+    logger.info("这个批次一共 {0} 张图片, {1} 个类别".format(images.size(0), len(class_images)))
 
     return images, class_images, loc_targets, class_targets, class_ids, class_image_sizes, \
            batch_box_inverse_transform, batch_boxes, batch_img_size
 
 
 def train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader, logger):
-    """One training iteration
+    """一个批次数据训练
         
     Args:
         batch_data - input data, will be parsed with prepare_batch_data
@@ -57,7 +57,7 @@ def train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader, logg
         logger - logger to use
 
     Returns:
-        meters (OrderedDict) - all computed metrics including meters["loss"], which is the loss optimized
+        meters (OrderedDict) - 所有计算的指标，包括meter["loss"]，这是优化的损失。
     """
     t_start_batch = time.time()
     net.train(freeze_bn_in_extractor=cfg.train.model.freeze_bn,
@@ -74,20 +74,20 @@ def train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader, logg
     # net.load_state_dict(data_nan["state_dict"])
     # optimizer.load_state_dict(data_nan["optimizer"])
     # grad = data_nan["grad"]
-
+    #images: [4,3,600,600], class_images:[4,5,1444]
     images, class_images, loc_targets, class_targets, class_ids, class_image_sizes, \
         batch_box_inverse_transform, batch_boxes, batch_img_size = \
         prepare_batch_data(batch_data, cfg.is_cuda, logger)
-
+    # loc_scores：【4，5,4，1444】， class_scores：class_scores_transform_detached：【4，,5，1444】，fm_size： FeatureMapSize(w=38, h=38)， transform_corners：【4，5，8，1444】
     loc_scores, class_scores, class_scores_transform_detached, fm_sizes, corners = \
         net(images, class_images,
             train_mode=True,
             fine_tune_features=cfg.train.model.train_features)
-
+    #  eg: cls_targets_remapped:[4,5,1444], ious_anchor:[4,5,1444],ious_anchor_corrected:[4,5,1444]
     cls_targets_remapped, ious_anchor, ious_anchor_corrected = \
         dataloader.box_coder.remap_anchor_targets(loc_scores, batch_img_size, class_image_sizes, batch_boxes)
 
-    # compute the losses
+    #计算损失
     losses = criterion(loc_scores, loc_targets,
                        class_scores, class_targets,
                        cls_targets_remapped=cls_targets_remapped,
@@ -110,7 +110,7 @@ def train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader, logg
     for name, param in net.named_parameters():
         if param.requires_grad and param.grad is not None:
             grad[name] = param.grad.clone().cpu()
-
+    # 梯度裁剪
     grad_norm = torch.nn.utils.clip_grad_norm_(get_trainable_parameters(net), cfg.train.optim.max_grad_norm, norm_type=2)
     # save error state if grad appears to be nan
     if math.isnan(grad_norm):
@@ -136,6 +136,9 @@ def train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader, logg
         meters[l] = losses[l].mean().item()
     meters["grad_norm"] = grad_norm
     meters["batch_time"] = time.time() - t_start_batch
+    # meters： OrderedDict([('loss', 0.0), ('class_loss_per_element_detached_cpu', 5.862840453119134e-07), ('loc_smoothL1', 0.0),
+    # ('cls_RLL', 0.0), ('cls_RLL_pos', 0.0), ('cls_RLL_neg', 0.0), ('grad_norm', tensor(0., device='cuda:0')),
+    # ('batch_time', 557.2003173828125)])
     return meters
 
 
@@ -230,23 +233,23 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
                                                     add_batch_dim(class_targets_pyramid),
                                                     cls_targets_remapped=cls_targets_remapped_pyramid,
                                                     patch_mining_mode=True)
-
+        # 类别绘图
         if cfg.visualization.mining.show_class_heatmaps:
             visualizer.show_class_heatmaps(image_id, batch_class_ids, image_fm_sizes_p, class_targets_pyramid, image_class_scores_pyramid,
                                             cfg_local=cfg.visualization.mining)
 
         assert dataloader.data_augmentation is not None, "Can mine hard patches only through data augmentation"
-        crop_size = dataloader.data_augmentation.random_crop_size
+        crop_size = dataloader.data_augmentation.random_crop_size  #eg: FeatureMapSize(w=600, h=600)
 
-        # convert to floats
+        # convert to floats, 每种loss的词典， OrderedDict([('loss', 1034.9815673828125), ('class_loss_per_element_detached_cpu', 0.003996067214757204), ('loc_smoothL1', 0.0), ('cls_RLL', 1034.9815673828125), ('cls_RLL_pos', 0.0), ('cls_RLL_neg', 1034.9815673828125)])
         for l in losses_iter:
             losses_iter[l] = losses_iter[l].mean().item()
         # printing
         print_meters(losses_iter, logger)
-        # update logs
+        # 更新日志
         add_to_meters_in_dict(losses_iter, losses)
 
-        # construct crop boxes for all the anchors and NMS them - NMS pos ang neg anchors separately
+        # 为所有的锚构筑裁剪bbox，并对其进行NMS--NMS正负锚分别进行。query_fm_sizes: list(28)
         query_fm_sizes = [dataloader.box_coder._get_feature_map_size_per_image_size(sz) for sz in query_img_sizes]
         
         crops = []
@@ -263,11 +266,13 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
         i_image_in_batch = 0 # only one image comes here
         for i_p, img_size in enumerate(img_size_pyramid):
             for i_label, query_fm_size in enumerate(query_fm_sizes):
+                # crop_boxes_xyxy:anchor_box: BoxList(num_boxes=1681, image_width=800, image_height=800, ), anchor_index:tensor(1681)
                 crop_position, anchor_position, anchor_index = \
                     dataloader.box_coder.output_box_grid_generator.get_box_to_cut_anchor(img_size,
                                                                                          crop_size,
                                                                                          image_fm_sizes_p[i_p],
                                                                                          box_reverse_transform_pyramid[i_p])
+
                 cur_corners = transform_corners_pyramid[i_p][i_label].transpose(0,1)
                 cur_corners = dataloader.box_coder.apply_transform_to_corners(cur_corners, box_reverse_transform_pyramid[i_p], img_size)
                 if cfg.is_cuda:
@@ -495,6 +500,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
             i_batch += 1
             num_steps_for_logging += 1
 
+            logger.info(f"开始对这一个batch的数据进行训练")
             # train on one batch
             meters = train_one_batch(batch_data, net, cfg, criterion, optimizer, dataloader_train, logger)
             meters["loading_time"] = t_data_loading
@@ -508,6 +514,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
 
             # evaluation
             if (i_iter + 1) % cfg.eval.iter == 0:
+                logger.info(f"迭代到第: {i_iter}个step， 开始评估和保存模型")
                 meters_eval = evaluate_model(dataloaders_eval, net, cfg, criterion)
 
                 # checkpoint the best model 
@@ -564,7 +571,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
 
 
     # evaluate the final model
-    logger.info(" 最终评估模型")
+    logger.info("最终评估模型")
     meters_eval = evaluate_model(dataloaders_eval, net, cfg, criterion, print_per_class_results=True)
 
     # add the final point

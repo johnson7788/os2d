@@ -94,9 +94,9 @@ class BoxList(object):
         BoxList.assert_bbox_tensor_dims(bbox)
         if source_format == target_format:
             return bbox
-        # convert to "xyxy" first
+        # 转换成左上角和右下角的坐标，convert to "xyxy" first, bbox转换格式： bbox,{1681,4], source_format: 'cx_cy_w_h'
         bbox_xyxy = BoxList._convert_to_xyxy(bbox, source_format)
-        # convert to the target format
+        #转换bbox为目标的格式, eg: target_format:'xyxy'
         bbox = BoxList._convert_from_xyxy(bbox_xyxy, target_format)
         return bbox
 
@@ -107,7 +107,7 @@ class BoxList(object):
         if source_format == "xywh":
             xmin, ymin, w, h = bbox.split(1, dim=-1)
             xmax, ymax = xmin + w, ymin + h
-        elif source_format == "cx_cy_w_h":
+        elif source_format == "cx_cy_w_h": # cx,cy：中心点的坐标, w,h: 宽和高, 转换成左上角和右下角的坐标：x1,y1,x2,y2
             cx, cy, w, h = bbox.split(1, dim=-1)
             xmin, ymin = cx - w/2, cy - h/2
             xmax, ymax = cx + w/2, cy + h/2

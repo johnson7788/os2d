@@ -36,7 +36,8 @@ def update_meter(log, name, num_log_steps, value):
 def print_meters(meters, logger):
     meters_str = ""
     for k, v in meters.items():
-        meters_str += "%s %.4f, "%(k, v)
+        meters_str += "%s:%.4f, "%(k, v)
+    logger.info("打印损失:")
     logger.info(meters_str)
 
 

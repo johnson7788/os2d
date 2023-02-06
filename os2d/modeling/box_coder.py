@@ -76,37 +76,38 @@ class BoxGridGenerator:
         return create_strided_boxes_columnfirst(fm_size, self.box_size, self.box_stride)
 
     def  get_box_to_cut_anchor(self, img_size, crop_size, fm_size, default_box_transform=None):
-        """For each anchor box, obtain the box of the size crop_size such that
-            2) the anchor box is roughly in the middle of the crop
-            2) it is aligned with the stride of the anchor boxes
-        Need this function so make sure that after cropping the original image we get the same cropped feature map
-        (problems are caused by the network stride).
+        """对于每个锚定框，获得尺寸为crop_size的框，以便
+            2) anchorbox大致位于裁剪的中间位置
+            2）它与anchor boxes的跨度一致
+        需要这个函数来确保在裁剪原始图像后，我们得到相同的裁剪后的特征图。
+        (问题是由网络跨度引起的）。
         Used in train.mine_hard_patches.
         Args:
-            img_size (FeatureMapSize) - size of the original image
-            crop_size (FeatureMapSize) - size of the crop needed for training
-            fm_size (FeatureMapSize) - size of the feature map from this image
-            default_box_transform (TransformList) - transformation to convert the boxes to the img_size scale
+            img_size (FeatureMapSize) - 原始图像的尺寸， FeatureMapSize(w=41, h=41)
+            crop_size (FeatureMapSize) - 训练所需的裁剪大小， FeatureMapSize(w=600, h=600)
+            fm_size (FeatureMapSize) - 该图像的特征图的大小，FeatureMapSize(w=41, h=41)
+            default_box_transform (TransformList) - 将box转换为Img_size比例的变换， <os2d.structures.transforms.TransformList object>
         Returns:
             crop_boxes_xyxy, anchor_box (BoxList)
             anchor_index (tensor of indices)
         """
 
-        # anchors are encoded in the column-first row-last order
+        # anchor是按照列-先-行-后列的顺序编码的
         # converting position (anchor_index) to (anchor_y_index, anchor_x_index)
-        anchor_index = torch.arange( fm_size.h * fm_size.w )
-        anchor_y_index = anchor_index // fm_size.w
-        anchor_x_index = anchor_index % fm_size.w
+        anchor_index = torch.arange( fm_size.h * fm_size.w )  #eg: tensor:(1681), 锚点的索引
+        anchor_y_index = anchor_index // fm_size.w   #eg: tensor:(1681),
+        anchor_x_index = anchor_index % fm_size.w    #eg: tensor:(1681),
 
-        # get the center of the anchor
+        # 获取锚点框的中心, cx:xy, eg: tensor:(1681),
         cx = (anchor_x_index.float() + 0.5) * self.box_stride.w
         cy = (anchor_y_index.float() + 0.5) * self.box_stride.h
 
-        # get the top-left corner of the box to crop
+        # 获取框的左上角进行裁剪, box_left:box_top,eg: tensor:(1681),
         box_left = cx - crop_size.w / 2
         box_top = cy - crop_size.h / 2
 
         anchor_box = torch.stack([cx, cy, torch.full_like(cx, self.box_size.w), torch.full_like(cx, self.box_size.h)], 1)
+        # 转换anchor_box的格式到"xyxy"的形式，即左上角和右下角的坐标的格式
         anchor_box = BoxList.convert_bbox_format(anchor_box, "cx_cy_w_h", "xyxy")
 
         # round down to strided positions in the image
@@ -122,8 +123,7 @@ class BoxGridGenerator:
         # get another corner
         box_right = box_left + crop_size.w
         box_bottom = box_top + crop_size.h
-
-        # make sure the crop is in the image: this stratery should be compatible with the one used in augmentation.crop_image
+        # 确保裁剪在图像中：这个stratery应该与augmentation.crop_image中使用的stratery兼容。
         mask_have_to_move_right = box_left < 0
         box_right[mask_have_to_move_right] -= box_left[mask_have_to_move_right]
         box_left[mask_have_to_move_right] = 0
@@ -162,7 +162,7 @@ class BoxGridGenerator:
         if default_box_transform is not None:
             crop_boxes_xyxy = default_box_transform(crop_boxes_xyxy)
             anchor_box = default_box_transform(anchor_box)
-
+        # crop_boxes_xyxy:anchor_box: BoxList(num_boxes=1681, image_width=800, image_height=800, ), anchor_index:tensor(1681)
         return crop_boxes_xyxy, anchor_box, anchor_index
 
 
@@ -302,7 +302,7 @@ class Os2dBoxCoder:
         
         ious_anchor_corrected = torch.stack(ious_anchor_corrected, 0) # num_images x num_labels x num_anchors, eg:[1,28,1681]
         ious_anchor = torch.stack(ious_anchor, 0) # num_images x num_labels x num_anchors,  eg:[1,28,1681]
-
+        # eg: cls_targets_remapped:[4,5,1444], ious_anchor:[4,5,1444],ious_anchor_corrected:[4,5,1444]
         return cls_targets_remapped, ious_anchor, ious_anchor_corrected
         
     @staticmethod

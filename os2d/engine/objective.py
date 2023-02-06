@@ -107,7 +107,7 @@ class Os2dObjective(nn.Module):
     def forward(self, loc_preds, loc_targets, cls_preds, cls_targets,
                 cls_targets_remapped=None, cls_preds_for_neg=None,
                 patch_mining_mode=False):
-        """Compute loss between (loc_preds, loc_targets) and (cls_preds, cls_targets).
+        """计算bbox损失和分类损失 (loc_preds, loc_targets) and (cls_preds, cls_targets).
 
         Args:
             loc_preds (tensor) - predicted locations, sized [batch_size, num_labels, 4, num_anchors]
@@ -134,7 +134,7 @@ class Os2dObjective(nn.Module):
             This function was started from the torcv codebase:
             https://github.com/kuangliu/torchcv/blob/master/torchcv/loss/ssd_loss.py
         """
-        # take pyramid into account: merge all in one tensor if needed
+        # 考虑到金字塔：如果需要，将所有的张量合并在一起
         loc_preds, loc_targets, cls_preds, cls_targets, \
             cls_preds_for_neg, cls_targets_remapped, pyramid_sizes =\
                 self.merge_pyramids(loc_preds, loc_targets, cls_preds, cls_targets,\
@@ -143,10 +143,10 @@ class Os2dObjective(nn.Module):
         # cls_targets == 1 corespond to actual labels - positives
         # cls_targets == 0 corespond to background - negatives
         # cls_targets == -1 corespond to difficult positives - should be ignored at training
-        pos = cls_targets > 0  # [batch_size, num_labels, num_anchors]
+        pos = cls_targets > 0  # [batch_size, num_labels, num_anchors], eg: [4,5,1444]
         mask_ignored = cls_targets == -1
         neg =  ~(mask_ignored | pos)
-        num_pos = pos.long().sum().item()
+        num_pos = pos.long().sum().item()  #eg:0
 
         # use remap targets if provided and if self.remap_classification_targets == True
         if cls_targets_remapped is not None:

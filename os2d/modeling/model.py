@@ -258,12 +258,12 @@ class Os2dModel(nn.Module):
             transform_corners (tensor) - 定义平行四边形的点显示变换, 形状 batch_size x num_classes x 8 x num_anchors
         """
         with torch.set_grad_enabled(train_mode and fine_tune_features):
-            # extract features
+            #提取特征
             if feature_maps is None:
                 assert images is not None, "If feature_maps is None than images cannot be None"
                 feature_maps = self.net_feature_maps(images)
 
-            # get features for labels
+            # 获取标签的特征
             if class_head is None:
                 assert class_images is not None, "If class_conv_layer is None than class_images cannot be None"
                 class_feature_maps = self.net_label_features(class_images)
@@ -272,8 +272,9 @@ class Os2dModel(nn.Module):
         # 处理不同金字塔层次的特征图
         loc_scores, class_scores, class_scores_transform_detached, transform_corners = \
             self.apply_class_heads_to_feature_maps(feature_maps, class_head)
-
+        # fm_size： FeatureMapSize(w=38, h=38)
         fm_size = FeatureMapSize(img=feature_maps)
+        # loc_scores：【4，5,4，1444】， class_scores：class_scores_transform_detached：【4，,5，1444】，fm_size： FeatureMapSize(w=38, h=38)， transform_corners：【4，5，8，1444】
         return loc_scores, class_scores, class_scores_transform_detached, fm_size, transform_corners
 
     @lru_cache()
