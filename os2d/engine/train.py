@@ -352,7 +352,7 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
                         labels_of_anchors[i], anchor_indices[i],
                         crops[i].cpu(), achors[i].cpu(), corners_of_anchors[i].cpu())
 
-        # extract loss values and compute the box positions to crop
+        # 提取损失值，并计算box位置以进行裁剪
         for a in hardnegdata:
             a["label_global"] = standardize(batch_class_ids[ a["label_local"] ])
             a["loss"] = standardize(losses_per_anchor["cls_loss"][a["pyramid_level"]][i_image_in_batch, a["label_local"], a["anchor_index"]])
@@ -365,8 +365,8 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
         if cfg.visualization.mining.show_mined_patches:
             visualizer.show_mined_patches(image_id, batch_class_ids, dataloader, hardnegdata)
 
-        logger.info("Item time: {0}, since mining start: {1}".format(time_since(t_item_start), time_since(t_start_mining)))
-    logger.info("Hard negative mining finished in {0}".format(time_since(t_start_mining)))
+        logger.info("Item time: {0}, 自从挖掘开始: {1}".format(time_since(t_item_start), time_since(t_start_mining)))
+    logger.info("困难负样本挖掘完成 {0}".format(time_since(t_start_mining)))
     return hardnegdata_per_imageid
 
 
@@ -475,7 +475,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
                 dataloader_train.set_hard_negative_data(hardnegdata_per_imageid)
             
             # print iter info
-            logger.info(f"迭代了 {i_iter} ({cfg.train.optim.max_iter}), epoch {i_epoch}, time {time_since(t_start)}")
+            logger.info(f"迭代到{i_iter}/{cfg.train.optim.max_iter}, 当前epoch:{i_epoch}, 总耗时: {time_since(t_start)}")
 
             # get data for training
             t_start_loading = time.time()
@@ -523,7 +523,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
                 for k in meters_running:
                     meters_running[k] /= num_steps_for_logging
 
-                # anneal learning rate
+                #退火学习率
                 meters_running["lr"] = get_learning_rate(optimizer)
                 if anneal_lr_func:
                     lr = anneal_lr_func(i_iter + 1, anneal_now=i_iter > cfg.train.optim.anneal_lr.initial_patience)
@@ -532,7 +532,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
                     lr = meters_running["lr"]
                     flag_changed_lr = False
 
-                # if lr was annealed load the best up to now model and set it up
+                # 如果lr是退火的，那么就加载目前最好的模型并设置好。
                 if cfg.train.optim.anneal_lr.reload_best_model_after_anneal_lr and flag_changed_lr:
                     if cfg.output.best_model.do_get_best_model: # if have the best model at all
                         optimizer_state = net.init_model_from_file(checkpoint_best_model_path)
@@ -548,7 +548,7 @@ def trainval_loop(dataloader_train, net, cfg, criterion, optimizer, dataloaders_
                 # init for the next 
                 num_steps_for_logging, meters_running = 0, {}
 
-            # save intermediate model
+            # 保存中间模型
             if cfg.output.path and cfg.output.save_iter and i_iter % cfg.output.save_iter == 0:
                 checkpoint_model(net, optimizer, cfg.output.path, cfg.is_cuda, i_iter=i_iter)
 
