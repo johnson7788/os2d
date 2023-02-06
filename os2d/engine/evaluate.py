@@ -270,7 +270,9 @@ def make_iterator_extract_scores_from_images_batched(dataloader, net, logger, im
 
         for b_im in batch_class_images:
             class_feature_maps = net.net_label_features([b_im])   #前向传播，提取图片的类别特征图
+            #
             class_conv_layer = net.os2d_head_creator.create_os2d_head(class_feature_maps)
+            #
             class_conv_layer_batched.append(class_conv_layer)
     
     # 遍历所有图像

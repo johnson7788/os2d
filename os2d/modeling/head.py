@@ -244,7 +244,7 @@ class Os2dHeadCreator(nn.Module):
             assert fm.size(0) == 1, "Can process only batches of size 1, but have {0}".format(fm.size(0))
             num_feature_channels = fm.size(1)
 
-            # resample class features
+            # 重新取样类特征
             identity = torch.tensor([[1, 0, 0], [0, 1, 0]], device=fm.device, dtype=fm.dtype)
             grid_size = torch.Size([1,
                                     num_feature_channels,
@@ -254,14 +254,16 @@ class Os2dHeadCreator(nn.Module):
             fm_ref_size = F.grid_sample(fm, resampling_grid, mode='bilinear', padding_mode='zeros', align_corners=True)
             # fm_ref_size: [1,1024,15,15]
             feature_maps_ref_size.append(fm_ref_size)
-
+        # feature_maps_ref_size: [1,1024,15,15]
         feature_maps_ref_size = torch.cat(feature_maps_ref_size, dim=0)
         return feature_maps_ref_size
 
     def create_os2d_head(self, class_feature_maps):
         # 将所有特征图转换为标准尺寸， reference_feature_map_size： FeatureMapSize(w=15, h=15)
         reference_feature_map_size = self.aligner.reference_feature_map_size
+        # class_feature_maps_ref_size: [1,1024,15,15]
         class_feature_maps_ref_size = self.resize_feature_maps_to_reference_size(reference_feature_map_size, class_feature_maps)
+        # 初始化一个Os2dHead实例
         return Os2dHead(class_feature_maps_ref_size,
                         self.aligner,
                         self.box_grid_generator_image_level,
@@ -301,7 +303,7 @@ class Os2dHead(nn.Module):
                              pool_border_width : self.class_pool_mask.size(-1) - pool_border_width] = 1
         self.class_pool_mask = spatial_norm(self.class_pool_mask)  #[1,1,15,15]
 
-        # 创建对齐模块
+        # 创建对齐模块, Os2dAlignment实例
         self.aligner = aligner
 
 
