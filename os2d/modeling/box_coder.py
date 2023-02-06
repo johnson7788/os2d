@@ -242,21 +242,21 @@ class Os2dBoxCoder:
         cls_targets_remapped = []
         ious_anchor_corrected = []
         ious_anchor = []
-        for i_image in range(loc_scores.size(0)):
+        for i_image in range(loc_scores.size(0)):  #loc_scores： 【1，28，4,，,1681】
             default_boxes_xyxy = self._get_default_boxes(batch_img_size[i_image]) # num_anchors x 4
             image_cls_targets_remapped = []
             image_ious_anchor_corrected = []
             image_ious_anchor = []
             for i_label in range(loc_scores.size(1)):
-                cur_loc_scores = loc_scores[i_image, i_label].transpose(0,1)  # num_anchors x 4
-                cur_default_boxes_xyxy = default_boxes_xyxy.to(cur_loc_scores) # num_anchors x 4
+                cur_loc_scores = loc_scores[i_image, i_label].transpose(0,1)  # num_anchors x 4， eg: cur_loc_scores,[1681,4], 位置分数
+                cur_default_boxes_xyxy = default_boxes_xyxy.to(cur_loc_scores) # num_anchors x 4，放到设备上
+                # BoxList(num_boxes=1681, image_width=648, image_height=648, )
                 box_predictions = self.build_boxes_from_loc_scores(cur_loc_scores, cur_default_boxes_xyxy) # num_anchors x 4
-
                 if box_reverse_transform is not None:
-                    box_predictions = box_reverse_transform[i_image](box_predictions)
-                    cur_default_boxes_xyxy = box_reverse_transform[i_image](cur_default_boxes_xyxy)
+                    box_predictions = box_reverse_transform[i_image](box_predictions) #eg: BoxList(num_boxes=1681, image_width=800, image_height=800, )
+                    cur_default_boxes_xyxy = box_reverse_transform[i_image](cur_default_boxes_xyxy) #eg; BoxList(num_boxes=1681, image_width=800, image_height=800, )
                 
-                # match boxes to the GT objects
+                # 匹配 boxes到 groundtruth 目标, cur_labels: tensor([0])
                 cur_labels = batch_boxes[i_image].get_field("labels")
                 label_mask = cur_labels == i_label
                 ids = torch.nonzero(label_mask).view(-1)
@@ -264,7 +264,7 @@ class Os2dBoxCoder:
                 if ids.numel() > 0:
                     class_boxes = batch_boxes[i_image][ids].to(device=device)
 
-                    # compute IoUs with anchors
+                    # 如果有匹配到，那么计算anchors锚的 IoUs
                     _, ious = self.assign_anchors_to_boxes_threshold(cur_default_boxes_xyxy,
                                                                      class_boxes,
                                                                      self.matcher_remap)
@@ -282,26 +282,26 @@ class Os2dBoxCoder:
                     #   for others assign 1 (positives)
                     image_class_cls_targets_remapped = 1 + index.clamp(min=-2, max=0)
                 else:
-                    # no GT boxes of class i_label in image i_image
+                    # no GT boxes of class i_label in image i_image, image_class_cls_targets_remapped:(1681,)
                     image_class_cls_targets_remapped = torch.LongTensor(len(cur_default_boxes_xyxy)).zero_().to(device=device)
-                    ious_anchors_max_gt = torch.FloatTensor(len(cur_default_boxes_xyxy)).zero_().to(device=device)
-                    ious_corrected_max_gt = torch.FloatTensor(len(cur_default_boxes_xyxy)).zero_().to(device=device)
+                    ious_anchors_max_gt = torch.FloatTensor(len(cur_default_boxes_xyxy)).zero_().to(device=device)  #(1681,)
+                    ious_corrected_max_gt = torch.FloatTensor(len(cur_default_boxes_xyxy)).zero_().to(device=device)  #(1681,)
                 image_cls_targets_remapped.append(image_class_cls_targets_remapped)
                 image_ious_anchor_corrected.append(ious_corrected_max_gt)
                 image_ious_anchor.append(ious_anchors_max_gt)
-
-            image_cls_targets_remapped = torch.stack(image_cls_targets_remapped, 0)  # num_labels x num_anchors
+            # 每个锚框的类别
+            image_cls_targets_remapped = torch.stack(image_cls_targets_remapped, 0)  # num_labels x num_anchors, eg: [28,1681]
             cls_targets_remapped.append(image_cls_targets_remapped)
 
-            image_ious_anchor_corrected = torch.stack(image_ious_anchor_corrected, 0)  # num_labels x num_anchors
+            image_ious_anchor_corrected = torch.stack(image_ious_anchor_corrected, 0)  # num_labels x num_anchors, eg: [28,1681]
             ious_anchor_corrected.append(image_ious_anchor_corrected)
-            image_ious_anchor = torch.stack(image_ious_anchor, 0)  # num_labels x num_anchors
+            image_ious_anchor = torch.stack(image_ious_anchor, 0)  # num_labels x num_anchors, eg: [28,1681]
             ious_anchor.append(image_ious_anchor)
         
         cls_targets_remapped = torch.stack(cls_targets_remapped, 0) # num_images x num_labels x num_anchors
         
-        ious_anchor_corrected = torch.stack(ious_anchor_corrected, 0) # num_images x num_labels x num_anchors
-        ious_anchor = torch.stack(ious_anchor, 0) # num_images x num_labels x num_anchors
+        ious_anchor_corrected = torch.stack(ious_anchor_corrected, 0) # num_images x num_labels x num_anchors, eg:[1,28,1681]
+        ious_anchor = torch.stack(ious_anchor, 0) # num_images x num_labels x num_anchors,  eg:[1,28,1681]
 
         return cls_targets_remapped, ious_anchor, ious_anchor_corrected
         
@@ -320,16 +320,16 @@ class Os2dBoxCoder:
         return class_loc_targets
 
     def build_boxes_from_loc_scores(self, loc_scores, default_boxes):
-        """build_boxes_from_loc_scores is a wrapper for the torchvision implemetation of box decoding
-        Cannot be static because the torchvision method for decode is not static (this can be easily fixed id needed).
+        """build_boxes_from_loc_scores 是Torchvision实现box解码的一个封装器。
+        不能是静态的，因为Torchvision的解码方法不是静态的（这可以很容易地固定下来，需要的话）。
 
-        build_boxes_from_loc_scores and build_loc_targets implement inverse functionality:
+        build_boxes_from_loc_scores and build_loc_targets 实现逆向功能。
         self.build_loc_targets(self.build_boxes_from_loc_scores(loc_scores, default_boxes), default_boxes)
-        should be very close to loc_scores
-
+        应该非常接近于loc_scores
+        loc_scores:[1681,4], default_boxes: [1681]
         Ref: https://github.com/pytorch/vision/blob/master/torchvision/models/detection/_utils.py
         """
-        box_preds = self.box_coder.decode_single(loc_scores, default_boxes.bbox_xyxy)
+        box_preds = self.box_coder.decode_single(loc_scores, default_boxes.bbox_xyxy)  #[1681,4]
         return BoxList(box_preds, image_size=default_boxes.image_size, mode="xyxy")
 
     def encode(self, boxes, img_size, num_labels, default_box_transform=None):

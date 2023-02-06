@@ -216,12 +216,14 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
         
         cls_targets_remapped_pyramid = []
         for loc_scores, img_size, box_reverse_transform in zip(loc_scores_pyramid, img_size_pyramid, box_reverse_transform_pyramid):
-            # 遍历特征金字塔的每一层
+            # 遍历特征金字塔的每一层, cls_targets_remapped:ious_anchor:ious_anchor_corrected, 形状都是[1,28,1681]
             cls_targets_remapped, ious_anchor, ious_anchor_corrected = \
                 dataloader.box_coder.remap_anchor_targets(loc_scores, [img_size], query_img_sizes, [gt_boxes_one_image],
                                                           box_reverse_transform=[box_reverse_transform])
             cls_targets_remapped_pyramid.append(cls_targets_remapped)
-
+        # loc_scores_pyramid:list(2)-{[1,28,4,1681],[1,28,4,7569]}, 意思都是[批次，class_num, bbox坐标，anchors_num], loc_targets_pyramid:cls_targets_remapped_pyramid:list(2) -- {[28,4,1681],[28,4,7569]}
+        # image_class_scores_pyramid:class_targets_pyramid: list(2)--{[28,1681],[28,7569]}
+        # cls_targets_remapped_pyramid: list(2) -- {[1,28,1681],[1,28,7569]}
         losses_iter, losses_per_anchor = criterion(loc_scores_pyramid,
                                                     add_batch_dim(loc_targets_pyramid),
                                                     add_batch_dim(image_class_scores_pyramid),
