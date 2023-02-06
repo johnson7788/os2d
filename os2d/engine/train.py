@@ -202,7 +202,7 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
                 dataloader.box_coder.encode_pyramid(gt_boxes_one_image, img_size_pyramid, num_labels,
                                                     default_box_transform_pyramid=box_reverse_transform_pyramid)
 
-        # vizualize GT for debug
+        # 可视化，用于debug
         if cfg.visualization.mining.show_gt_boxes:
             visualizer.show_gt_boxes(image_id, gt_boxes_one_image, batch_class_ids, dataloader)
 
