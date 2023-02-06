@@ -190,15 +190,17 @@ class Os2dBoxCoder:
                                      self.remap_classification_targets_iou_neg)
 
     def _get_default_boxes(self, img_size):
-        """Compute the default (anchor) bounding boxes given the image size.
-        Not caching this because both self._get_feature_map_size_per_image_size and self.output_box_grid_generator.create_strided_boxes_columnfirst are cached.
+        """考虑到图像的大小，计算默认的（锚）bounding boxes。
+        不缓存这个，因为self._get_feature_map_size_per_image_size和self.output_box_grid_generator.create_strided_boxes_columnfirst都是缓存的。
 
         Args:
             img_size (FeatureMapSize)
         Return:
             boxes_xyxy (BoxList)
         """
+        # eg: feature_map_size: FeatureMapSize(w=71, h=71)
         feature_map_size = self._get_feature_map_size_per_image_size(img_size)
+        #eg: boxes_xyxy: BoxList(num_boxes=5041, image_width=1128, image_height=1128, )
         boxes_xyxy = self.output_box_grid_generator.create_strided_boxes_columnfirst(feature_map_size)
         boxes_xyxy = BoxList(boxes_xyxy, image_size=img_size, mode="xyxy")
         return boxes_xyxy
@@ -234,7 +236,7 @@ class Os2dBoxCoder:
 
     def remap_anchor_targets(self, loc_scores, batch_img_size, class_image_sizes, batch_boxes,
                              box_reverse_transform=None):
-        """Target remapping: changing detection targets (positive/negatives) after computing the localization from the model
+        """目标重映射：在从模型中计算出定位后改变检测目标（正/负）。
         Used in train.train_one_batch and train.mine_hard_patches
         """
         cls_targets_remapped = []
@@ -420,7 +422,7 @@ class Os2dBoxCoder:
                                 default_box_transform=default_box_transform_pyramid[i_p])
             loc_targets_pyramid.append(loc_targets_this_level)
             cls_targets_pyramid.append(cls_targets_this_level)
-
+        # 位置金字塔loc_targets_pyramid： list(2),eg: [28,4,1681],[28,4,7569], 类别金字塔cls_targets_pyramid:list(2), eg:[28,1681], [28,7569]
         return loc_targets_pyramid, cls_targets_pyramid
 
     @staticmethod

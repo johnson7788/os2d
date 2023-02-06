@@ -257,7 +257,7 @@ class DataloaderOneShotDetection():
         return self.dataset._get_dataset_image_by_id(image_id)
 
     def get_image_annotation_for_imageid(self, image_id):
-        # eg: image_id: 6， 图片的唯一id
+        # eg: image_id: 6， 图片的唯一id, eg: '7a8de5b72afebe5a9a6aca86a82d2fc9'
         return self.dataset.get_image_annotation_for_imageid(image_id)
 
     def get_image_ids_for_batch_index(self, index):
@@ -493,6 +493,7 @@ class DataloaderOneShotDetection():
         label_ids_global = boxes.get_field("labels")  #tensor([30, 30, 30])有3个bbox，每个的类别id
         # label_ids_local: tensor([0, 0, 0])  换成本地标签
         label_ids_local = DataloaderOneShotDetection.convert_label_ids_global_to_local(label_ids_global, class_ids)
+        # eg: label_ids_local: tensor([0])
         boxes.add_field("labels", label_ids_local)
     
     def set_hard_negative_data(self, hardnegdata_per_imageid):

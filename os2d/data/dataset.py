@@ -764,7 +764,7 @@ class DatasetOneShotDetection(data.Dataset):
             boxes = BoxList.create_empty(image_size)
             label_ids_global = torch.tensor([], dtype=torch.long)
             difficult_flag = torch.tensor([], dtype=torch.bool)
-
+        # label_ids_global: tensor([0]), difficult_flag:tensor([False])
         boxes.add_field("labels", label_ids_global)
         boxes.add_field("difficult", difficult_flag)
         boxes.add_field("labels_original", label_ids_global)

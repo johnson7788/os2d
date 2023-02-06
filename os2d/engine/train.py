@@ -189,15 +189,15 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
                 = data
 
         img_size_pyramid = [FeatureMapSize(img=image) for image in image_pyramid]
-        # 获取图像的groundtruth
+        # 获取图像的groundtruth, gt_boxes_one_image: BoxList(num_boxes=1, image_width=800, image_height=800, ) 包含， bbox_xyxy: tensor([[363., 192., 629., 872.]]), extra_fields, image_size
         gt_boxes_one_image = dataloader.get_image_annotation_for_imageid(image_id)
         gt_boxes.append(gt_boxes_one_image)
 
         #计算损失
-        # change labels to the ones local to the current image
+        # 把当前图像的标签改成本地标签
         dataloader.update_box_labels_to_local(gt_boxes_one_image, batch_class_ids)
         num_labels = len(batch_class_ids)
-
+        # 位置金字塔loc_targets_pyramid： list(2),eg: [28,4,1681],[28,4,7569], 类别金字塔cls_targets_pyramid:list(2), eg:[28,1681], [28,7569]
         loc_targets_pyramid, class_targets_pyramid = \
                 dataloader.box_coder.encode_pyramid(gt_boxes_one_image, img_size_pyramid, num_labels,
                                                     default_box_transform_pyramid=box_reverse_transform_pyramid)
@@ -216,7 +216,7 @@ def mine_hard_patches(dataloader, net, cfg, criterion):
         
         cls_targets_remapped_pyramid = []
         for loc_scores, img_size, box_reverse_transform in zip(loc_scores_pyramid, img_size_pyramid, box_reverse_transform_pyramid):
-            # loop over the pyramid levels
+            # 遍历特征金字塔的每一层
             cls_targets_remapped, ious_anchor, ious_anchor_corrected = \
                 dataloader.box_coder.remap_anchor_targets(loc_scores, [img_size], query_img_sizes, [gt_boxes_one_image],
                                                           box_reverse_transform=[box_reverse_transform])
