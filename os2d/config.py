@@ -39,9 +39,9 @@ cfg.train = CN()
 # 训练或跳过训练，只做评估
 cfg.train.do_training = True
 # Batch size
-cfg.train.batch_size = 2
+cfg.train.batch_size = 4
 # 训练批次中的最大类别图像数（控制内存消耗）。
-cfg.train.class_batch_size = 6
+cfg.train.class_batch_size = 15
 
 # 训练数据集的名称
 cfg.train.dataset_name = "grozi-train"

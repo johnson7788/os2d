@@ -39,8 +39,8 @@ train:
     train_transform_on_negs: False
 eval:
   iter: 1000    #训练多少个step，进行一次评估
-#  dataset_names: ("cosmetic-val-mini",)
-  dataset_names: ("cosmetic-val",)
+  dataset_names: ("cosmetic-val-mini",)
+#  dataset_names: ("cosmetic-val",)
   dataset_scales: (1280.0,)
   mAP_iou_thresholds: (0.5,)
   
