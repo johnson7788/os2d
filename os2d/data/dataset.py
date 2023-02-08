@@ -166,7 +166,7 @@ def build_cosmetic_dataset(data_path, name, eval_scale, cache_images=False, no_i
         raise RuntimeError("Unknown subset {0}".format(subset))
     # gtboxframe： dataframe: [7781,11], gt_path: 'xxx/data/grozi/classes/images', image_path: 'xxxx/os2d/data/grozi/src/3264', name:'grozi-train', image_size: 3264
     # eval_scale: 1280.0, image_ids:list,  image_file_names: list, cache_images: bool, True, no_image_reading:bool, logger_prefix:
-    assert len(image_ids) != 0, "获取的数据不能为空"
+    assert len(image_ids) != 0, "获取的数据不能为空"   #如果不训练，那么就不用读取图片，no_image_reading就为True
     dataset = DatasetOneShotDetection(gtboxframe, gt_path, image_path, name, image_size, eval_scale,
                                       image_ids=image_ids, image_file_names=image_file_names,
                                       cache_images=cache_images, no_image_reading=no_image_reading, logger_prefix=logger_prefix)
@@ -678,7 +678,7 @@ class DatasetOneShotDetection(data.Dataset):
         for image_id, image_file in zip(self.image_ids, self.image_file_names):
             idx += 1
             if idx % 500 == 0:
-                self.logger.info(f"读取了: {idx} 张，总共: {len(self.image_ids)} 张")
+                self.logger.info(f"读取所有标注,读取了: {idx} 张，总共: {len(self.image_ids)} 张")
             if image_id not in self.image_path_per_image_id:
                 # store the image path， img_path： '/media/wac/backup/john/johnson/os2d/data/grozi/src/3264/0.jpg'
                 img_path = os.path.join(self.image_path, image_file)
@@ -695,7 +695,7 @@ class DatasetOneShotDetection(data.Dataset):
             self.logger.info("读取类别图片中，速度较慢")
             for index, row in self.gtboxframe.iterrows():
                 if index % 500 == 0:
-                    self.logger.info(f"读取了: {index} 张，总共{self.gtboxframe.shape[0]} 张")
+                    self.logger.info(f"读取类别图,读取了: {index} 张，总共{self.gtboxframe.shape[0]} 张")
                 gt_file = row["classfilename"]
                 class_id = row["classid"]
                 if class_id not in self.gt_images_per_classid:
