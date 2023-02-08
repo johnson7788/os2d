@@ -51,7 +51,10 @@ def evaluate(dataloader, net, cfg, criterion=None, print_per_class_results=False
 
     # loop over all dataset images
     num_evaluted_images = 0
+    eval_idx = 0
     for data in iterator:
+        logger.info(f"评估数据的第: {eval_idx} 条")
+        eval_idx += 1
         image_id, image_loc_scores_pyramid, image_class_scores_pyramid,\
                     image_pyramid, query_img_sizes, class_ids,\
                     box_reverse_transform, image_fm_sizes_p, transform_corners_pyramid\

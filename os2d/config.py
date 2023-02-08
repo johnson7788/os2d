@@ -12,38 +12,38 @@ cfg.is_cuda = True
 cfg.random_seed = 42
 
 cfg.model = CN()
-# Backbone network to work with: ResNet50 | ResNet101
+# 与之合作的主干网络: ResNet50 | ResNet101
 cfg.model.backbone_arch = "ResNet50"
-# Share weights between feature extractors for class and input images
+# 类和输入图像的特征提取器之间共享权重
 cfg.model.merge_branch_parameters = True
-# Use the TransformNet for the inverse transform - it is slower, but compatible with the models from the weakalign paper
+# 使用TransformNet进行反变换--它的速度较慢，但与weakalign论文中的模型兼容。
 cfg.model.use_inverse_geom_model = True
-# Use the TransformNet for the simplified affine transform - only translation and scaling defined by 4 parameters
+# 使用TransformNet进行简化的仿射变换--只有由4个参数定义的平移和缩放。
 cfg.model.use_simplified_affine_model = False
-# Resize class images with preserving the aspect ratio such that the product of dimentions equals class_image_size squared
+# 在保留长宽比的情况下调整类图像的大小，使其尺寸的乘积等于类图像大小的平方。
 cfg.model.class_image_size = 240
-# Use Group Normalization instead of BatchNorm
+# 使用组归一化而不是批次归一化
 cfg.model.use_group_norm = False
 # normalization
 cfg.model.normalization_mean = [0.485, 0.456, 0.406]
 cfg.model.normalization_std = [0.229, 0.224, 0.225]
 
 cfg.init = CN()
-# Path to the file from where to initialize the model (used for both training and evaluation), default - init from scratch
+# 用于初始化模型的文件的路径（用于训练和评估），默认 - 从头开始启动。
 cfg.init.model = ""
-# Path to the file from where to initialize the transformation network, overwrites the weights defined in init.model, default - follow init.model
+# 用于初始化转换网络的文件的路径，覆盖init.model中定义的权重，默认 - 按照init.model。
 cfg.init.transform = ""
 
-# Training settings
+# 训练设置
 cfg.train = CN()
-# train or skip training and just do evaluation
+# 训练或跳过训练，只做评估
 cfg.train.do_training = True
 # Batch size
-cfg.train.batch_size = 4
-# Maximum number of class images in a training batch (to control memory consumption)
-cfg.train.class_batch_size = 15
+cfg.train.batch_size = 2
+# 训练批次中的最大类别图像数（控制内存消耗）。
+cfg.train.class_batch_size = 6
 
-# Name of the training dataset
+# 训练数据集的名称
 cfg.train.dataset_name = "grozi-train"
 # Scale of the training dataset.
 # The longer image side used to sample train patches at training.
