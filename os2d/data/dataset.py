@@ -160,7 +160,7 @@ def build_cosmetic_dataset(data_path, name, eval_scale, cache_images=False, no_i
     elif subset in ["val", "val-mini"]:
         gtboxframe = gtboxframe[gtboxframe["split"].isin(["val"])]
         if subset == "val-mini":
-            gtboxframe = gtboxframe[:20]
+            gtboxframe = gtboxframe[:100]
         image_ids, image_file_names = get_unique_images(gtboxframe)
     else:
         raise RuntimeError("Unknown subset {0}".format(subset))
